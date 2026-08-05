@@ -1,0 +1,23 @@
+import { loadIdToken } from "./token-store.js";
+
+// TODO(T-26): GitHub Pages公開後、デプロイ済みworkers.devのURLに置き換える。
+const API_BASE =
+  location.hostname === "localhost" || location.hostname === "127.0.0.1"
+    ? "http://localhost:8787"
+    : "";
+
+export async function fetchConfig() {
+  const res = await fetch(`${API_BASE}/api/config`);
+  if (!res.ok) {
+    throw new Error("設定の取得に失敗しました");
+  }
+  return res.json();
+}
+
+// ログイン状態の判定用。200/401/403はここでは判定せず、呼び出し側に委ねる。
+export async function fetchMe() {
+  const idToken = loadIdToken();
+  return fetch(`${API_BASE}/api/me`, {
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+}

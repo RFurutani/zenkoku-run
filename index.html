@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>全国制覇ラン</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<div id="login-screen">
+  <h1>全国制覇ラン</h1>
+  <div id="google-signin-button"></div>
+  <p id="login-message" role="alert"></p>
+</div>
+
+<div id="main-screen" hidden>
+  <p>ログイン中：<span id="user-email"></span></p>
+  <button id="logout-button" type="button">ログアウト</button>
+  <!-- 地図・数値・凡例はT-14実装後にここへ追加する -->
+</div>
+
+<script type="module" src="js/auth.js"></script>
+</body>
+</html>
