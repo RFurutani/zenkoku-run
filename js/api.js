@@ -21,3 +21,11 @@ export async function fetchMe() {
     headers: { Authorization: `Bearer ${idToken}` },
   });
 }
+
+// 47都道府県分の制覇状況サマリー（T-14）。呼び出し側は既にログイン済みの前提。
+export async function fetchSummary() {
+  const idToken = loadIdToken();
+  return fetch(`${API_BASE}/api/summary?mode=personal`, {
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+}

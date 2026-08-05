@@ -1,5 +1,6 @@
 import { fetchConfig, fetchMe } from "./api.js";
 import { saveIdToken, loadIdToken, clearIdToken, isExpired } from "./token-store.js";
+import { renderSummary } from "./summary.js";
 
 const loginScreen = document.getElementById("login-screen");
 const mainScreen = document.getElementById("main-screen");
@@ -45,6 +46,7 @@ async function checkLoginState() {
   if (res.status === 200) {
     const { email } = await res.json();
     showMain(email);
+    await renderSummary();
     return;
   }
 

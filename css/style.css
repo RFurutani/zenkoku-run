@@ -4,6 +4,11 @@
   --paper: #FCFBF8;
   --rule: #D3D6DE;
   --danger: #C4362F;
+  /* 段階1〜4の色（requirements.md 5.1節の段階カラー定義）。段階0（未制覇）は白のまま。 */
+  --t1: #2F6FED;
+  --t2: #17A66B;
+  --t3: #FF2E86;
+  --t4: #C9A227;
 }
 
 * {
@@ -60,4 +65,207 @@ h1 {
 button:focus-visible {
   outline: 3px solid var(--ink);
   outline-offset: 2px;
+}
+
+#summary-error {
+  color: var(--danger);
+  font-size: 13px;
+  min-height: 1.6em;
+}
+
+/* 以下、docs/prototype.html のCSSを移植（数値サマリー・47目盛りバー・地方別・地図・凡例）。 */
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+header {
+  padding: 20px 0 14px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: .22em;
+  color: var(--ink-soft);
+  margin: 0 0 6px;
+}
+
+.tally {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.tally .big {
+  font-size: 48px;
+  font-weight: 700;
+  line-height: .82;
+}
+
+.tally .of {
+  font-size: 16px;
+  font-weight: 300;
+  color: var(--ink-soft);
+}
+
+.tally .pct {
+  margin-left: auto;
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.tally .pct small {
+  font-size: 12px;
+  font-weight: 300;
+  color: var(--ink-soft);
+}
+
+.sub {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-top: 10px;
+  border-top: 1px dotted var(--rule);
+  padding-top: 8px;
+}
+
+.sub b {
+  color: var(--ink);
+}
+
+.ticks {
+  display: flex;
+  gap: 2px;
+  margin-top: 12px;
+}
+
+.ticks i {
+  flex: 1;
+  height: 13px;
+  background: #E7E8EC;
+  border-radius: 1px;
+  font-style: normal;
+}
+
+.ticks i.t1 { background: var(--t1); opacity: .72; }
+.ticks i.t2 { background: var(--t2); opacity: .78; }
+.ticks i.t3 { background: var(--t3); opacity: .82; }
+.ticks i.t4 {
+  opacity: 1;
+  background: linear-gradient(135deg, #F5DE7A 0%, #C9A227 38%, #FFF4C2 52%, #B4891B 68%, #E8C95A 100%);
+}
+
+.regions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px 10px;
+  margin-top: 14px;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.regions div {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dotted var(--rule);
+}
+
+.regions b {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.mapwrap {
+  padding: 18px 0 6px;
+  overflow-x: auto;
+}
+
+#map {
+  display: grid;
+  grid-template-columns: repeat(15, minmax(30px, 1fr));
+  grid-auto-rows: 34px;
+  gap: 2px;
+  min-width: 470px;
+}
+
+.cell {
+  position: relative;
+  border: 1.4px solid var(--ink);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  padding: 0;
+}
+
+.cell span {
+  position: relative;
+  z-index: 2;
+}
+
+.cell::after {
+  content: "";
+  position: absolute;
+  inset: -2px -3px;
+  z-index: 1;
+  mix-blend-mode: multiply;
+  border-radius: 3px;
+  opacity: 0;
+  transform: rotate(-.7deg) scaleX(.98);
+  transition: opacity .3s, background .3s;
+}
+
+.cell.t1::after { background: var(--t1); opacity: .72; }
+.cell.t2::after { background: var(--t2); opacity: .78; }
+.cell.t3::after { background: var(--t3); opacity: .82; }
+.cell.t4::after {
+  opacity: 1;
+  mix-blend-mode: normal;
+  background: linear-gradient(135deg, #F5DE7A 0%, #C9A227 38%, #FFF4C2 52%, #B4891B 68%, #E8C95A 100%);
+}
+
+.cell.t4 span {
+  color: #3A2C00;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .55);
+}
+
+.cell.t4 {
+  border-color: #8C6B12;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell::after {
+    transition: none;
+  }
+}
+
+.legend {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px 14px;
+  padding: 10px 0 0;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.legend-swatch {
+  width: 16px;
+  height: 10px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+.legend-swatch.t0 { background: #fff; border: 1.2px solid var(--ink); }
+.legend-swatch.t1 { background: var(--t1); opacity: .72; }
+.legend-swatch.t2 { background: var(--t2); opacity: .78; }
+.legend-swatch.t3 { background: var(--t3); opacity: .82; }
+.legend-swatch.t4 {
+  opacity: 1;
+  background: linear-gradient(135deg, #F5DE7A, #C9A227 40%, #FFF4C2 55%, #B4891B);
 }
