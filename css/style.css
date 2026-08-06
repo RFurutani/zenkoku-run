@@ -201,6 +201,12 @@ header {
   font-weight: 600;
   letter-spacing: -.02em;
   padding: 0;
+  cursor: pointer;
+}
+
+.cell:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
 }
 
 .cell span {
@@ -268,4 +274,159 @@ header {
 .legend-swatch.t4 {
   opacity: 1;
   background: linear-gradient(135deg, #F5DE7A, #C9A227 40%, #FFF4C2 55%, #B4891B);
+}
+
+/* 以下、県詳細シート（T-16）。docs/prototype.htmlの.sheet/.scrim/.chips相当を移植。
+   登録・修正フォームのCSS（.shelf/.toast等）はT-17実装時に追加する。 */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(22, 35, 63, .35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s;
+}
+
+.scrim.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  background: var(--paper);
+  border-top: 2px solid var(--ink);
+  border-radius: 14px 14px 0 0;
+  padding: 16px 18px 26px;
+  max-width: 420px;
+  margin: 0 auto;
+  transform: translateY(102%);
+  transition: transform .26s cubic-bezier(.3, .8, .3, 1);
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 -8px 30px rgba(22, 35, 63, .12);
+}
+
+.sheet.open {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet {
+    transition: none;
+  }
+}
+
+.sheet h3 {
+  margin: 0;
+  font-size: 23px;
+}
+
+.gauge {
+  height: 8px;
+  background: #E7E8EC;
+  margin: 10px 0 6px;
+}
+
+.gauge i {
+  display: block;
+  height: 100%;
+  background: var(--t1);
+}
+
+.st {
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin: 0 0 4px;
+}
+
+.st b {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 10px 0 2px;
+  max-height: 112px;
+  overflow-y: auto;
+}
+
+.chip {
+  font-size: 11px;
+  border: 1.2px solid var(--rule);
+  color: var(--ink-soft);
+  padding: 3px 8px;
+  background: transparent;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.chip.on {
+  border-color: var(--ink);
+  color: var(--ink);
+  font-weight: 700;
+  background: #fff;
+}
+
+.secttl {
+  font-size: 10px;
+  letter-spacing: .16em;
+  color: var(--ink-soft);
+  margin: 18px 0 6px;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 4px;
+}
+
+.existing {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.existing li {
+  border-left: 3px solid var(--t1);
+  padding: 7px 0 7px 10px;
+  margin-bottom: 7px;
+  font-size: 13px;
+}
+
+.existing .d {
+  font-size: 11px;
+  color: var(--ink-soft);
+  margin-right: 6px;
+}
+
+.existing .memo {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.btnrow {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+#sheetCloseButton {
+  padding: 8px 16px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+#sheetError {
+  color: var(--danger);
+  font-size: 13px;
+  min-height: 1.6em;
 }

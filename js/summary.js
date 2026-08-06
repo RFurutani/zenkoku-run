@@ -4,6 +4,7 @@
 
 import { LAYOUT, REGION, RORDER, RTOTAL } from "./map-layout.js";
 import { fetchSummary } from "./api.js";
+import { openPrefSheet } from "./pref-sheet.js";
 
 const mapEl = document.getElementById("map");
 const ticksEl = document.getElementById("ticks");
@@ -20,6 +21,16 @@ function showSummaryError(message) {
   summaryErrorEl.textContent = message;
 }
 
+// タップまたはEnter/Spaceで県詳細シートを開く（T-16）。
+// cell.dataset.prefCodeはapplyStages()でAPI応答を受け取った後に設定されるため、
+// まだ設定されていない（データ取得中）場合は何もしない。
+function openSheetForCell(cell) {
+  if (!cell.dataset.prefCode) {
+    return;
+  }
+  openPrefSheet(cell.dataset.prefCode, cell);
+}
+
 // LAYOUTの47件ぶんのマスを描画する。段階（色）はまだ付けず、枠だけ作る。
 function buildMapCells() {
   mapEl.textContent = "";
@@ -29,10 +40,21 @@ function buildMapCells() {
     cell.dataset.pref = prefName;
     cell.style.gridColumn = `${col} / span ${colSpan}`;
     cell.style.gridRow = `${row} / span ${rowSpan}`;
+    cell.tabIndex = 0;
+    cell.setAttribute("role", "button");
+    cell.setAttribute("aria-label", `${prefName}県の詳細を開く`);
 
     const label = document.createElement("span");
     label.textContent = prefName;
     cell.appendChild(label);
+
+    cell.addEventListener("click", () => openSheetForCell(cell));
+    cell.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openSheetForCell(cell);
+      }
+    });
 
     mapEl.appendChild(cell);
   });
@@ -45,6 +67,8 @@ function applyStages(byPrefName) {
     if (row.stage > 0) {
       cell.classList.add(`t${row.stage}`);
     }
+    // 県詳細シート（T-16）を開く際にprefCodeが必要なため、ここで持たせておく。
+    cell.dataset.prefCode = row.prefCode;
   });
 }
 

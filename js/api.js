@@ -29,3 +29,11 @@ export async function fetchSummary() {
     headers: { Authorization: `Bearer ${idToken}` },
   });
 }
+
+// 県詳細（市一覧・走行記録）（T-16）。呼び出し側は既にログイン済みの前提。
+export async function fetchPrefDetail(prefCode) {
+  const idToken = loadIdToken();
+  return fetch(`${API_BASE}/api/pref/${prefCode}`, {
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+}
