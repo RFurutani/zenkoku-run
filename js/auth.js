@@ -68,12 +68,41 @@ async function checkLoginState() {
   showLogin("予期しないエラーが発生しました。しばらくしてからもう一度お試しください。");
 }
 
+// GSIスクリプトは<script async>で読み込んでおり、type="module"のauth.jsとは
+// 読み込み完了の順序が保証されない（T-15.5で発覚：google未定義エラー）。
+// setTimeoutでの「待てば大体間に合う」対応はせず、スクリプトのloadイベントで
+// 確実に読み込み完了を検知してから初期化する。
+function waitForGoogleIdentity() {
+  return new Promise((resolve, reject) => {
+    if (window.google?.accounts?.id) {
+      resolve();
+      return;
+    }
+    const script = document.getElementById("gsi-client-script");
+    script.addEventListener("load", () => resolve(), { once: true });
+    script.addEventListener(
+      "error",
+      () => reject(new Error("Googleログイン用スクリプトの読み込みに失敗しました")),
+      { once: true }
+    );
+  });
+}
+
 async function init() {
   let googleClientId;
   try {
     ({ googleClientId } = await fetchConfig());
   } catch {
     showLogin("サーバーに接続できませんでした。しばらくしてからもう一度お試しください。");
+    return;
+  }
+
+  try {
+    await waitForGoogleIdentity();
+  } catch {
+    showLogin(
+      "Googleログインの読み込みに失敗しました。通信環境を確認し、再読み込みしてください。"
+    );
     return;
   }
 
