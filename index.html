@@ -57,6 +57,25 @@
   <div class="secttl">走行記録</div>
   <ul class="existing" id="sheetRuns"></ul>
 
+  <div class="secttl">記録を登録</div>
+  <form id="recordForm" novalidate>
+    <label for="fCity">市</label>
+    <select id="fCity" required></select>
+
+    <label for="fDate">走行日</label>
+    <input id="fDate" type="date" required>
+
+    <label for="fMemo">メモ（任意）</label>
+    <textarea id="fMemo" placeholder="大会名、コースの印象、体調など"></textarea>
+
+    <p id="formError" role="alert"></p>
+    <p id="formSuccess" role="status"></p>
+
+    <div class="btnrow">
+      <button class="primary" id="recordSubmitButton" type="submit">登録する</button>
+    </div>
+  </form>
+
   <div class="btnrow">
     <button class="ghost" id="sheetCloseButton" type="button">閉じる</button>
   </div>

@@ -118,6 +118,9 @@ function renderTotals(totals) {
   pctEl.appendChild(small);
 }
 
+// 戻り値は成否（true/false）。例外を投げず内部でエラー表示まで完結させる作りのため、
+// 呼び出し側が成否を見て後続処理を分けたい場合（T-17登録成功後の再取得など）は
+// この戻り値を使う（Promise.all/allSettledの reject 検知では拾えないため）。
 export async function renderSummary() {
   showSummaryError("");
   buildMapCells();
@@ -127,12 +130,12 @@ export async function renderSummary() {
     const res = await fetchSummary();
     if (!res.ok) {
       showSummaryError("集計情報の取得に失敗しました。しばらくしてからもう一度お試しください。");
-      return;
+      return false;
     }
     data = await res.json();
   } catch {
     showSummaryError("サーバーに接続できませんでした。しばらくしてからもう一度お試しください。");
-    return;
+    return false;
   }
 
   const byPrefName = new Map(data.prefectures.map((row) => [row.prefName, row]));
@@ -146,11 +149,12 @@ export async function renderSummary() {
       `地図の県名とサーバーの都道府県名が一致しません（${missingInApi.join("、")}）。開発者に連絡してください。`
     );
     console.error("map-layout.jsのLAYOUTとAPIのprefNameが一致しない県があります:", missingInApi);
-    return;
+    return false;
   }
 
   applyStages(byPrefName);
   renderTicks(byPrefName);
   renderRegions(byPrefName);
   renderTotals(data.totals);
+  return true;
 }

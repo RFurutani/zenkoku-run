@@ -277,7 +277,7 @@ header {
 }
 
 /* 以下、県詳細シート（T-16）。docs/prototype.htmlの.sheet/.scrim/.chips相当を移植。
-   登録・修正フォームのCSS（.shelf/.toast等）はT-17実装時に追加する。 */
+   登録フォーム（T-17）のCSSは下の「県詳細シート：登録フォーム」節にまとめている。 */
 
 .scrim {
   position: fixed;
@@ -429,4 +429,62 @@ header {
   color: var(--danger);
   font-size: 13px;
   min-height: 1.6em;
+}
+
+/* 県詳細シート：登録フォーム（T-17） */
+
+#recordForm label {
+  display: block;
+  font-size: 11px;
+  letter-spacing: .1em;
+  color: var(--ink-soft);
+  margin: 12px 0 4px;
+}
+
+#recordForm select,
+#recordForm input,
+#recordForm textarea {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1.4px solid var(--ink);
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  border-radius: 0;
+}
+
+#recordForm textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+#recordForm .primary {
+  padding: 8px 16px;
+  border: 1.4px solid var(--ink);
+  border-radius: 6px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#recordForm .primary:disabled {
+  opacity: .5;
+  cursor: default;
+}
+
+#formError {
+  color: var(--danger);
+  font-size: 13px;
+  min-height: 1.6em;
+  margin: 10px 0 0;
+}
+
+#formSuccess {
+  color: var(--t2);
+  font-size: 13px;
+  min-height: 1.6em;
+  margin: 10px 0 0;
 }

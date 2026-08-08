@@ -37,3 +37,17 @@ export async function fetchPrefDetail(prefCode) {
     headers: { Authorization: `Bearer ${idToken}` },
   });
 }
+
+// 走行記録の登録（T-17）。bodyは{city_code, run_date, memo}のスネークケースのまま渡す
+// （design.md 4.2節のAPI仕様どおり。呼び出し側でキー名を変換しない）。
+export async function createRecord(body) {
+  const idToken = loadIdToken();
+  return fetch(`${API_BASE}/api/records`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+}
