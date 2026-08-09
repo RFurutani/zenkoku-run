@@ -1,10 +1,9 @@
 import { loadIdToken } from "./token-store.js";
 
-// TODO(T-26): GitHub Pages公開後、デプロイ済みworkers.devのURLに置き換える。
 const API_BASE =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "http://localhost:8787"
-    : "";
+    : "https://zenkoku-run-api.ryo-furutani.workers.dev";
 
 export async function fetchConfig() {
   const res = await fetch(`${API_BASE}/api/config`);
