@@ -1,6 +1,14 @@
 import { fetchConfig, fetchMe } from "./api.js";
 import { saveIdToken, loadIdToken, clearIdToken, isExpired } from "./token-store.js";
 import { renderSummary } from "./summary.js";
+import { APP_VERSION } from "./version.js";
+
+// ログイン前後どちらの画面でも見える必要があるため、init()の成否を問わず
+// ここで即座に描画する（CLAUDE.mdセキュリティ規約8：textContentのみ使用）。
+const appFooter = document.getElementById("app-footer");
+if (appFooter) {
+  appFooter.textContent = `v${APP_VERSION}`;
+}
 
 const loginScreen = document.getElementById("login-screen");
 const mainScreen = document.getElementById("main-screen");
