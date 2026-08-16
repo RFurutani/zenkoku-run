@@ -172,6 +172,49 @@ header {
   border-bottom: 1px dotted var(--rule);
 }
 
+.region-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* バッジ（T-39）。段階4「完全制覇」で使っている金色（--t4）を流用し、
+   3種のバッジで見た目の意味を統一する。 */
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6B4F00;
+  background: linear-gradient(135deg, #F5DE7A 0%, #C9A227 38%, #FFF4C2 52%, #B4891B 68%, #E8C95A 100%);
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.sheet h3 .badge {
+  font-size: 12px;
+}
+
+/* 「達成した瞬間」の演出トースト（T-39）。控えめに画面上部へ短時間だけ表示する
+   （役割はrole="status" aria-live="polite"で、視覚だけに頼らない）。 */
+.celebration {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  background: var(--ink);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 9px 16px;
+  border-radius: 999px;
+  box-shadow: 0 6px 20px rgba(22, 35, 63, .25);
+  max-width: calc(100% - 32px);
+  text-align: center;
+}
+
 .regions b {
   font-weight: 500;
   color: var(--ink);
@@ -407,6 +450,16 @@ header {
 .existing .memo {
   font-size: 12px;
   color: var(--ink-soft);
+}
+
+.existing .who {
+  font-size: 11px;
+  color: var(--ink-soft);
+  margin-left: 6px;
+}
+
+.existing .who::before {
+  content: "・";
 }
 
 .btnrow {

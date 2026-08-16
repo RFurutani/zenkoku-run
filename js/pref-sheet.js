@@ -4,17 +4,19 @@
 // textContentまたはcreateElementで組み立てる。
 
 import { fetchPrefDetail, createRecord } from "./api.js";
-import { renderSummary } from "./summary.js";
+import { renderSummary, getCurrentBadgeState } from "./summary.js";
 
 const scrimEl = document.getElementById("scrim");
 const sheetEl = document.getElementById("sheet");
 const titleEl = document.getElementById("sheetTitle");
+const prefBadgeEl = document.getElementById("sheetPrefBadge");
 const gaugeEl = document.getElementById("sheetGauge");
 const statEl = document.getElementById("sheetStat");
 const errorEl = document.getElementById("sheetError");
 const chipsEl = document.getElementById("sheetChips");
 const runsEl = document.getElementById("sheetRuns");
 const closeButton = document.getElementById("sheetCloseButton");
+const celebrationEl = document.getElementById("celebrationToast");
 
 const formEl = document.getElementById("recordForm");
 const fCityEl = document.getElementById("fCity");
@@ -79,6 +81,14 @@ function renderRuns(runs) {
     dateSpan.textContent = run.runDate;
     li.appendChild(dateSpan);
     li.appendChild(document.createTextNode(run.cityName));
+    // registrantNameはT-39で追加（将来のチームモードT-36の下地。design.md 4.6節）。
+    // 現状は常に自分自身の名前だが、表示コードは複数人分を想定して作る。
+    if (run.registrantName) {
+      const whoSpan = document.createElement("span");
+      whoSpan.className = "who";
+      whoSpan.textContent = run.registrantName;
+      li.appendChild(whoSpan);
+    }
     if (run.memo) {
       const memoDiv = document.createElement("div");
       memoDiv.className = "memo";
@@ -154,6 +164,11 @@ async function loadAndRenderPref(prefCode) {
   statEl.appendChild(strong);
   statEl.appendChild(document.createTextNode(` / ${data.citiesTotal} 市`));
 
+  // 県バッジの常時表示（T-39）。達成条件はUIに出さず、達成済みかどうかだけを示す。
+  const prefAchieved = data.citiesTotal > 0 && data.citiesConquered === data.citiesTotal;
+  prefBadgeEl.hidden = !prefAchieved;
+  prefBadgeEl.textContent = prefAchieved ? `🏅 全${data.citiesTotal}市 制覇` : "";
+
   renderChips(data.cities);
   renderRuns(data.runs);
   renderCitySelect(data.cities);
@@ -164,6 +179,8 @@ export async function openPrefSheet(prefCode, triggerEl) {
   lastFocusedEl = triggerEl || document.activeElement;
   resetForm();
   titleEl.textContent = "読み込み中…";
+  prefBadgeEl.hidden = true;
+  prefBadgeEl.textContent = "";
   gaugeEl.style.width = "0%";
   statEl.textContent = "";
   chipsEl.textContent = "";
@@ -208,6 +225,65 @@ function reattachTriggerAfterSummaryRerender() {
   if (freshCell) {
     lastFocusedEl = freshCell;
   }
+}
+
+// 「達成した瞬間」の演出（T-39）。DBには何も保存せず、登録前後の状態をブラウザの
+// メモリ上で比較するだけ（design.md 4.6節）。この方式の限界（POST /api/records を
+// 経由せずに達成した場合は演出が出ない）も同節に明記してある。
+let celebrationQueue = [];
+let celebrationShowing = false;
+
+function showNextCelebration() {
+  if (celebrationQueue.length === 0) {
+    celebrationShowing = false;
+    celebrationEl.hidden = true;
+    celebrationEl.textContent = "";
+    return;
+  }
+  celebrationShowing = true;
+  celebrationEl.textContent = celebrationQueue.shift();
+  celebrationEl.hidden = false;
+  setTimeout(showNextCelebration, 3000);
+}
+
+// 複数バッジが同時に初達成した場合に備え、キューに積んで1つずつ表示する
+// （現状のデータでは同時発生しないが、将来のため）。
+function queueCelebrations(messages) {
+  if (messages.length === 0) {
+    return;
+  }
+  celebrationQueue.push(...messages);
+  if (!celebrationShowing) {
+    showNextCelebration();
+  }
+}
+
+// 登録前に退避しておいたprevPrefData・prevBadgeStateと、登録後の最新状態を比較し、
+// 新たに達成した（＝前は未達成、今回は達成）バッジだけを演出対象にする。
+function collectNewlyAchievedMessages(prevPrefData, prevBadgeState) {
+  const messages = [];
+
+  const prefJustAchieved =
+    prevPrefData &&
+    prevPrefData.citiesTotal > 0 &&
+    prevPrefData.citiesConquered < prevPrefData.citiesTotal &&
+    currentPrefData &&
+    currentPrefData.citiesConquered === currentPrefData.citiesTotal;
+  if (prefJustAchieved) {
+    messages.push(`🏅 ${currentPrefData.prefName}県 全${currentPrefData.citiesTotal}市 制覇！`);
+  }
+
+  const newBadgeState = getCurrentBadgeState();
+  newBadgeState.regions.forEach((achieved, regionName) => {
+    if (achieved && !prevBadgeState.regions.get(regionName)) {
+      messages.push(`🏆 ${regionName} 全県コンプリート！`);
+    }
+  });
+  if (newBadgeState.national && !prevBadgeState.national) {
+    messages.push("👑 全国制覇！");
+  }
+
+  return messages;
 }
 
 async function handleRecordSubmit(event) {
@@ -270,6 +346,10 @@ async function handleRecordSubmit(event) {
     resetForm();
     showFormSuccess("登録しました。");
 
+    // 「達成した瞬間」の演出用に、再取得で上書きされる前の状態を退避する（T-39）。
+    const prevPrefData = currentPrefData;
+    const prevBadgeState = getCurrentBadgeState();
+
     try {
       const [prefOk, summaryOk] = await Promise.all([
         loadAndRenderPref(currentPrefCode),
@@ -277,6 +357,7 @@ async function handleRecordSubmit(event) {
       ]);
       if (prefOk && summaryOk) {
         reattachTriggerAfterSummaryRerender();
+        queueCelebrations(collectNewlyAchievedMessages(prevPrefData, prevBadgeState));
       } else {
         showFormError("登録は完了しましたが、画面の更新に失敗しました。再読み込みしてください。");
       }

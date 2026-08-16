@@ -20,6 +20,7 @@
   <button id="logout-button" type="button">ログアウト</button>
 
   <p id="summary-error" role="alert"></p>
+  <div id="celebrationToast" class="celebration" role="status" aria-live="polite" hidden></div>
 
   <header>
     <p class="eyebrow">全国制覇ラン / 47 PREFECTURES</p>
@@ -29,7 +30,7 @@
     </div>
     <div class="sub">
       <span>自治体の制覇 <b id="cityDone">0</b> / <b id="citiesTotal">815</b></span>
-      <span>完全制覇（全自治体）<b id="goldN">0</b> 県</span>
+      <span>完全制覇（全自治体）<b id="goldN">0</b> 県 <span id="nationalBadge" class="badge" hidden></span></span>
     </div>
     <div class="ticks" id="ticks"></div>
     <div class="regions" id="regions"></div>
@@ -48,7 +49,7 @@
 
 <div class="scrim" id="scrim"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" aria-hidden="true">
-  <h3 id="sheetTitle">—</h3>
+  <h3><span id="sheetTitle">—</span> <span id="sheetPrefBadge" class="badge" hidden></span></h3>
   <div class="gauge"><i id="sheetGauge" style="width:0"></i></div>
   <p class="st" id="sheetStat"></p>
   <p id="sheetError" role="alert"></p>

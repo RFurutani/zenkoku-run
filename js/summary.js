@@ -15,7 +15,14 @@ const prefsTotalEl = document.getElementById("prefsTotal");
 const cityDoneEl = document.getElementById("cityDone");
 const citiesTotalEl = document.getElementById("citiesTotal");
 const goldNEl = document.getElementById("goldN");
+const nationalBadgeEl = document.getElementById("nationalBadge");
 const summaryErrorEl = document.getElementById("summary-error");
+
+// バッジ判定用に、直近のmissingInApiガードを通過したデータだけを保持する（T-39）。
+// pref-sheet.jsのgetCurrentBadgeState()呼び出しは常にこの2つを経由するため、
+// LAYOUTとAPIのprefNameが食い違った回のデータでバッジ判定が行われることはない。
+let lastByPrefName = null;
+let lastTotals = null;
 
 function showSummaryError(message) {
   summaryErrorEl.textContent = message;
@@ -86,6 +93,23 @@ function renderTicks(byPrefName) {
     });
 }
 
+// 地方バッジ（T-39）の判定：地方内の全県が完全制覇（stage===4）かどうか。
+// renderRegions()の「着手県数」（citiesConquered > 0を数える）とは別の、
+// もっと厳しい条件なので独立した集計にする。既存の着手県数のロジックは変更しない。
+function regionFullyConquered(byPrefName, regionName) {
+  return Object.keys(REGION)
+    .filter((prefName) => REGION[prefName] === regionName)
+    .every((prefName) => byPrefName.get(prefName).stage === 4);
+}
+
+function computeRegionBadges(byPrefName) {
+  const badges = new Map();
+  RORDER.forEach((regionName) => {
+    badges.set(regionName, regionFullyConquered(byPrefName, regionName));
+  });
+  return badges;
+}
+
 function renderRegions(byPrefName) {
   regionsEl.textContent = "";
   RORDER.forEach((regionName) => {
@@ -96,10 +120,26 @@ function renderRegions(byPrefName) {
     const row = document.createElement("div");
     const label = document.createElement("span");
     label.textContent = regionName;
+
+    // .regions divはjustify-content:space-betweenで2要素（label／右側）を左右に振る。
+    // countとbadgeは同じ右側グループにまとめ、常時2要素構成を保つ
+    // （バッジの有無でレイアウトの列数が変わらないようにするため）。
+    const right = document.createElement("span");
+    right.className = "region-right";
     const count = document.createElement("b");
     count.textContent = `${conqueredCount}/${RTOTAL[regionName]}`;
+    right.appendChild(count);
+
+    if (regionFullyConquered(byPrefName, regionName)) {
+      const badge = document.createElement("span");
+      badge.className = "badge";
+      badge.textContent = "🏆";
+      badge.setAttribute("aria-label", `${regionName} 全県コンプリート`);
+      right.appendChild(badge);
+    }
+
     row.appendChild(label);
-    row.appendChild(count);
+    row.appendChild(right);
     regionsEl.appendChild(row);
   });
 }
@@ -116,6 +156,23 @@ function renderTotals(totals) {
   const small = document.createElement("small");
   small.textContent = "%";
   pctEl.appendChild(small);
+
+  const achievedNational = totals.fullyConqueredPrefs === 47;
+  nationalBadgeEl.hidden = !achievedNational;
+  nationalBadgeEl.textContent = achievedNational ? "👑 全国制覇" : "";
+}
+
+// 「達成した瞬間」の演出（T-39）用に、直近のバッジ状態を外部（pref-sheet.js）へ渡す。
+// missingInApiガードを通過したデータのみが lastByPrefName/lastTotals に入るため
+// （renderSummary()参照）、ガードに守られていない生データでバッジ判定されることはない。
+export function getCurrentBadgeState() {
+  if (!lastByPrefName || !lastTotals) {
+    return { regions: new Map(), national: false };
+  }
+  return {
+    regions: computeRegionBadges(lastByPrefName),
+    national: lastTotals.fullyConqueredPrefs === 47,
+  };
 }
 
 // 戻り値は成否（true/false）。例外を投げず内部でエラー表示まで完結させる作りのため、
@@ -151,6 +208,10 @@ export async function renderSummary() {
     console.error("map-layout.jsのLAYOUTとAPIのprefNameが一致しない県があります:", missingInApi);
     return false;
   }
+
+  // ここまでガードを通過したデータだけをバッジ判定用に保持する（getCurrentBadgeState()参照）。
+  lastByPrefName = byPrefName;
+  lastTotals = data.totals;
 
   applyStages(byPrefName);
   renderTicks(byPrefName);
