@@ -3,8 +3,9 @@
 // CLAUDE.mdセキュリティ規約8：サーバー由来の文字列（県名・市名・メモ）はinnerHTMLで描画せず、
 // textContentまたはcreateElementで組み立てる。
 
-import { fetchPrefDetail, createRecord } from "./api.js";
+import { fetchPrefDetail, createRecord, fetchPhoto, uploadPhoto, deletePhoto } from "./api.js";
 import { renderSummary, getCurrentBadgeState } from "./summary.js";
+import { compressImage } from "./photo.js";
 
 const scrimEl = document.getElementById("scrim");
 const sheetEl = document.getElementById("sheet");
@@ -32,6 +33,19 @@ let lastFocusedEl = null;
 let currentPrefCode = null;
 let currentPrefData = null;
 let submitInFlight = false;
+
+// worker/src/router.jsのMAX_PHOTOS_PER_RUNと一致させること（design.md 4.7節）。
+const MAX_PHOTOS_PER_RUN = 2;
+
+// アップロード直後のプレビューはKVから取り直さず、ここに保持したローカルBlobの
+// オブジェクトURLをそのまま使い続ける（design.md 4.4節：KVは書き込み直後
+// 最大60秒程度の結果整合性があるため）。シートを閉じるまで解放しない。
+const localPhotoUrls = new Map(); // photoId -> objectURL
+// GET /api/photos/:idで取得した分のオブジェクトURL。renderRuns()を呼ぶたびに
+// 直前の分を解放してから作り直す（このMapとは寿命が異なるため別管理にする）。
+let fetchedPhotoUrls = [];
+// runId単位のアップロード中フラグ（二重押し防止）。
+const uploadingRunIds = new Set();
 
 function showSheetError(message) {
   errorEl.textContent = message;
@@ -63,7 +77,131 @@ function renderChips(cities) {
   });
 }
 
+// GET /api/photos/:idで取得したバイナリをimg/aへ反映する。アップロード直後の写真は
+// localPhotoUrlsに既に入っているため、その場合はfetchせずローカルのオブジェクトURLを使う
+// （design.md 4.4節）。
+function attachPhotoUrl(photoId, imgEl, linkEl) {
+  if (localPhotoUrls.has(photoId)) {
+    const url = localPhotoUrls.get(photoId);
+    imgEl.src = url;
+    linkEl.href = url;
+    return;
+  }
+  fetchPhoto(photoId)
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error("写真の取得に失敗しました");
+      }
+      return res.blob();
+    })
+    .then((blob) => {
+      const url = URL.createObjectURL(blob);
+      fetchedPhotoUrls.push(url);
+      imgEl.src = url;
+      linkEl.href = url;
+    })
+    .catch(() => {
+      imgEl.alt = "写真を読み込めませんでした";
+    });
+}
+
+// 写真1枚ぶんの要素（サムネイル＋別タブで原寸表示するリンク＋削除ボタン）を組み立てる。
+function renderPhotoItem(run, photo) {
+  const wrap = document.createElement("div");
+  wrap.className = "photo-item";
+
+  const link = document.createElement("a");
+  link.target = "_blank";
+  link.rel = "noopener";
+
+  const img = document.createElement("img");
+  img.className = "thumb";
+  img.alt = "走行記録の写真";
+  link.appendChild(img);
+  wrap.appendChild(link);
+
+  const delButton = document.createElement("button");
+  delButton.type = "button";
+  delButton.className = "photo-del";
+  delButton.textContent = "✕";
+  delButton.setAttribute("aria-label", "この写真を削除");
+  delButton.addEventListener("click", () => handleDeletePhotoClick(run, photo.id, delButton));
+  wrap.appendChild(delButton);
+
+  attachPhotoUrl(photo.id, img, link);
+  return wrap;
+}
+
+// 「📷 撮影」「🖼 選択」の2ボタンとその隠しinput、アップロード状況表示欄を組み立てる。
+// 上限（MAX_PHOTOS_PER_RUN）に達している場合はボタンを出さない。
+function renderAddPhotoControls(li, run, currentCount) {
+  const statusDiv = document.createElement("div");
+  statusDiv.className = "photo-status";
+
+  if (currentCount >= MAX_PHOTOS_PER_RUN) {
+    li.appendChild(statusDiv);
+    return;
+  }
+
+  const controls = document.createElement("div");
+  controls.className = "photo-controls";
+
+  function makeInput(useCameraCapture) {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    if (useCameraCapture) {
+      input.capture = "environment";
+    }
+    input.hidden = true;
+    return input;
+  }
+
+  const cameraInput = makeInput(true);
+  const galleryInput = makeInput(false);
+
+  const cameraButton = document.createElement("button");
+  cameraButton.type = "button";
+  cameraButton.className = "photo-add-btn";
+  cameraButton.textContent = "📷 撮影";
+  cameraButton.addEventListener("click", () => cameraInput.click());
+
+  const galleryButton = document.createElement("button");
+  galleryButton.type = "button";
+  galleryButton.className = "photo-add-btn";
+  galleryButton.textContent = "🖼 選択";
+  galleryButton.addEventListener("click", () => galleryInput.click());
+
+  const buttons = [cameraButton, galleryButton];
+
+  function onFileSelected(event) {
+    const file = event.target.files && event.target.files[0];
+    // 同じファイルを選び直してもchangeが発火するよう、毎回クリアする。
+    event.target.value = "";
+    if (!file) {
+      return;
+    }
+    handleAddPhoto(run, file, buttons, statusDiv);
+  }
+
+  cameraInput.addEventListener("change", onFileSelected);
+  galleryInput.addEventListener("change", onFileSelected);
+
+  controls.appendChild(cameraButton);
+  controls.appendChild(cameraInput);
+  controls.appendChild(galleryButton);
+  controls.appendChild(galleryInput);
+
+  li.appendChild(controls);
+  li.appendChild(statusDiv);
+}
+
 function renderRuns(runs) {
+  // 直前の描画でfetchした分のオブジェクトURLだけ解放する。ローカルアップロード分
+  // （localPhotoUrls）はシートを閉じるまで温存する（design.md 4.4節）。
+  fetchedPhotoUrls.forEach((url) => URL.revokeObjectURL(url));
+  fetchedPhotoUrls = [];
+
   runsEl.textContent = "";
   if (runs.length === 0) {
     const li = document.createElement("li");
@@ -95,8 +233,125 @@ function renderRuns(runs) {
       memoDiv.textContent = run.memo;
       li.appendChild(memoDiv);
     }
+
+    const photos = run.photos || [];
+    if (photos.length > 0) {
+      const photosDiv = document.createElement("div");
+      photosDiv.className = "photos";
+      photos.forEach((photo) => {
+        photosDiv.appendChild(renderPhotoItem(run, photo));
+      });
+      li.appendChild(photosDiv);
+    }
+    renderAddPhotoControls(li, run, photos.length);
+
     runsEl.appendChild(li);
   });
+}
+
+// 圧縮 → アップロード → 成功したらローカルBlobのオブジェクトURLをそのまま
+// サムネイルに使う（design.md 4.4節：アップロード直後はKVを読み直さない）。
+async function handleAddPhoto(run, file, buttons, statusDiv) {
+  if (uploadingRunIds.has(run.runId)) {
+    return;
+  }
+
+  statusDiv.textContent = "";
+  statusDiv.classList.remove("error");
+
+  let compressed;
+  try {
+    compressed = await compressImage(file);
+  } catch {
+    statusDiv.textContent = "この画像は処理できませんでした。別の写真をお試しください。";
+    statusDiv.classList.add("error");
+    return;
+  }
+
+  uploadingRunIds.add(run.runId);
+  buttons.forEach((b) => {
+    b.disabled = true;
+  });
+  statusDiv.textContent = "アップロード中…";
+
+  try {
+    const res = await uploadPhoto(run.runId, compressed);
+
+    if (res.status === 401) {
+      statusDiv.textContent = "セッションが切れました。再ログインしてください。";
+      statusDiv.classList.add("error");
+      return;
+    }
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      statusDiv.textContent =
+        body?.error ?? "写真の保存に失敗しました。しばらくしてからもう一度お試しください。";
+      statusDiv.classList.add("error");
+      return;
+    }
+
+    const data = await res.json();
+    const objectUrl = URL.createObjectURL(compressed);
+    localPhotoUrls.set(data.photoId, objectUrl);
+
+    const targetRun = currentPrefData?.runs.find((r) => r.runId === run.runId);
+    if (targetRun) {
+      targetRun.photos = [...(targetRun.photos || []), { id: data.photoId, sortOrder: data.sortOrder }];
+    }
+    renderRuns(currentPrefData.runs);
+  } catch {
+    statusDiv.textContent = "サーバーに接続できませんでした。しばらくしてからもう一度お試しください。";
+    statusDiv.classList.add("error");
+  } finally {
+    uploadingRunIds.delete(run.runId);
+    // renderRunsで要素が作り直された場合、このbuttonsは既にDOMから外れているため
+    // disabled解除は無意味だが、上のエラー分岐（return）でDOMがそのまま残るケースでは必要。
+    buttons.forEach((b) => {
+      b.disabled = false;
+    });
+  }
+}
+
+function confirmDeletePhoto() {
+  return window.confirm("この写真を削除しますか？");
+}
+
+async function handleDeletePhotoClick(run, photoId, button) {
+  if (button.disabled) {
+    return;
+  }
+  if (!confirmDeletePhoto()) {
+    return;
+  }
+
+  button.disabled = true;
+  try {
+    const res = await deletePhoto(photoId);
+    if (!res.ok) {
+      showSheetError(
+        res.status === 401
+          ? "セッションが切れました。再ログインしてください。"
+          : "写真の削除に失敗しました。しばらくしてからもう一度お試しください。"
+      );
+      button.disabled = false;
+      return;
+    }
+
+    if (localPhotoUrls.has(photoId)) {
+      URL.revokeObjectURL(localPhotoUrls.get(photoId));
+      localPhotoUrls.delete(photoId);
+    }
+
+    const targetRun = currentPrefData?.runs.find((r) => r.runId === run.runId);
+    if (targetRun) {
+      targetRun.photos = (targetRun.photos || []).filter((p) => p.id !== photoId);
+    }
+    showSheetError("");
+    renderRuns(currentPrefData.runs);
+  } catch {
+    showSheetError("サーバーに接続できませんでした。しばらくしてからもう一度お試しください。");
+    button.disabled = false;
+  }
 }
 
 // 市の<select>を、この県の市一覧（GET /api/pref/:code）から組み立てる。
@@ -202,6 +457,14 @@ export function closePrefSheet() {
   if (lastFocusedEl) {
     lastFocusedEl.focus();
   }
+
+  // シートを閉じるタイミングで、fetch分・アップロード分の両方のオブジェクトURLを解放する。
+  // 次に開いたときはlocalPhotoUrlsが空の状態から始まるため、その時点で全写真をfetchし直す
+  // （KVの結果整合性の猶予は既に十分経過しているとみなせる。design.md 4.4節）。
+  fetchedPhotoUrls.forEach((url) => URL.revokeObjectURL(url));
+  fetchedPhotoUrls = [];
+  localPhotoUrls.forEach((url) => URL.revokeObjectURL(url));
+  localPhotoUrls.clear();
 }
 
 // F-27（同一市・同一日の重複登録）の確認ダイアログ。将来、自前モーダルに差し替える

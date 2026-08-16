@@ -50,3 +50,35 @@ export async function createRecord(body) {
     body: JSON.stringify(body),
   });
 }
+
+// 写真の取得（T-21）。<img src>はAuthorizationヘッダーを付けられないため、呼び出し側で
+// レスポンスをBlob化しURL.createObjectURL()に変換してimg.srcへ渡す（design.md 4.4節）。
+export async function fetchPhoto(photoId) {
+  const idToken = loadIdToken();
+  return fetch(`${API_BASE}/api/photos/${photoId}`, {
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+}
+
+// 写真のアップロード（T-21）。1リクエスト1枚（design.md 4.7節）。blobは呼び出し側で
+// canvas圧縮済みのJPEGを渡す想定。
+export async function uploadPhoto(runId, blob) {
+  const idToken = loadIdToken();
+  const formData = new FormData();
+  formData.append("run_id", String(runId));
+  formData.append("photo", blob, "photo.jpg");
+  return fetch(`${API_BASE}/api/photos`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: formData,
+  });
+}
+
+// 写真の削除（T-22）。
+export async function deletePhoto(photoId) {
+  const idToken = loadIdToken();
+  return fetch(`${API_BASE}/api/photos/${photoId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+}
