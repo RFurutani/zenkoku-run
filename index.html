@@ -83,6 +83,17 @@
 </div>
 
 <footer id="app-footer"></footer>
+<button id="diagnosticsButton" type="button">診断</button>
+
+<div class="scrim" id="diagnosticsScrim"></div>
+<div class="sheet" id="diagnosticsPanel" role="dialog" aria-modal="true" aria-labelledby="diagnosticsTitle" aria-hidden="true">
+  <h3 id="diagnosticsTitle">診断情報</h3>
+  <p class="st">この画面の内容にはログイン情報やメールアドレスは含まれません。そのままスクリーンショットで送ってください。</p>
+  <dl id="diagnosticsList" class="diagnostics-list"></dl>
+  <div class="btnrow">
+    <button class="ghost" id="diagnosticsCloseButton" type="button">閉じる</button>
+  </div>
+</div>
 
 <script type="module" src="js/auth.js"></script>
 </body>

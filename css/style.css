@@ -624,3 +624,35 @@ header {
   font-size: 10px;
   color: var(--ink-soft);
 }
+
+/* 診断画面。ログインできない状態でも開けるよう、login-screen/main-screenの外側に置く
+   （footerの直後）。パネル自体は既存の.sheet/.scrimをそのまま流用する。 */
+#diagnosticsButton {
+  display: block;
+  margin: 10px auto 0;
+  padding: 6px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink-soft);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.diagnostics-list {
+  margin: 14px 0 0;
+}
+
+.diagnostics-list dt {
+  font-size: 10px;
+  letter-spacing: .08em;
+  color: var(--ink-soft);
+  margin-top: 10px;
+}
+
+.diagnostics-list dd {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--ink);
+  word-break: break-all;
+}

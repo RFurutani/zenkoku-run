@@ -13,6 +13,11 @@ export async function fetchConfig() {
   return res.json();
 }
 
+// ヘルスチェック（診断画面用）。認証不要の公開エンドポイント。
+export async function fetchHealth() {
+  return fetch(`${API_BASE}/api/health`);
+}
+
 // ログイン状態の判定用。200/401/403はここでは判定せず、呼び出し側に委ねる。
 export async function fetchMe() {
   const idToken = loadIdToken();
