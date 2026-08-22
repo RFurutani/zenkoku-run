@@ -50,7 +50,8 @@ h1 {
   min-height: 1.6em;
 }
 
-#logout-button {
+#logout-button,
+#settingsButton {
   margin-top: 16px;
   padding: 8px 16px;
   border: 1px solid var(--rule);
@@ -59,6 +60,10 @@ h1 {
   color: var(--ink);
   font-size: 14px;
   cursor: pointer;
+}
+
+#settingsButton {
+  margin-left: 8px;
 }
 
 #logout-button:focus-visible,
@@ -608,6 +613,57 @@ header {
 }
 
 #formSuccess {
+  color: var(--t2);
+  font-size: 13px;
+  min-height: 1.6em;
+  margin: 10px 0 0;
+}
+
+/* 設定画面：ニックネームフォーム（T-53）。#recordFormと同じ見た目にする。 */
+
+#nicknameForm label {
+  display: block;
+  font-size: 11px;
+  letter-spacing: .1em;
+  color: var(--ink-soft);
+  margin: 12px 0 4px;
+}
+
+#nicknameForm input {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1.4px solid var(--ink);
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  border-radius: 0;
+}
+
+#nicknameForm .primary {
+  padding: 8px 16px;
+  border: 1.4px solid var(--ink);
+  border-radius: 6px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#nicknameForm .primary:disabled {
+  opacity: .5;
+  cursor: default;
+}
+
+#nicknameError {
+  color: var(--danger);
+  font-size: 13px;
+  min-height: 1.6em;
+  margin: 10px 0 0;
+}
+
+#nicknameSuccess {
   color: var(--t2);
   font-size: 13px;
   min-height: 1.6em;

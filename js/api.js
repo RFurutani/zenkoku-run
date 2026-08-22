@@ -26,6 +26,20 @@ export async function fetchMe() {
   });
 }
 
+// 自分のニックネームの変更（T-53、設定画面用）。空文字を送ると未設定に戻る
+// （worker/src/router.jsのnormalizeNickname参照）。
+export async function updateNickname(nickname) {
+  const idToken = loadIdToken();
+  return fetch(`${API_BASE}/api/me`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ nickname }),
+  });
+}
+
 // 47都道府県分の制覇状況サマリー（T-14）。呼び出し側は既にログイン済みの前提。
 export async function fetchSummary() {
   const idToken = loadIdToken();
