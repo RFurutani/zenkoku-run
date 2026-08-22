@@ -44,37 +44,41 @@ async function checkLoginState() {
     return;
   }
 
-  let res;
+  // サインイン直後、fetchMe()の応答を待つ間も画面に何かしら表示された状態を保つ
+  // （初回ログイン時に画面が一瞬真っ白に見える事象への対策。詳細はdocs/progress.md参照）。
+  showLogin("ログイン状態を確認しています…");
+
   try {
-    res = await fetchMe();
+    const res = await fetchMe();
+
+    if (res.status === 200) {
+      const { email } = await res.json();
+      showMain(email);
+      await renderSummary();
+      return;
+    }
+
+    if (res.status === 401) {
+      // トークンが無効・期限切れ＝再ログインで解決する（design.md 2.2節）。
+      clearIdToken();
+      showLogin("ログインが必要です。もう一度ログインしてください。");
+      return;
+    }
+
+    if (res.status === 403) {
+      // 許可リスト外＝再ログインしても解決しないため、その旨を明記する（design.md 2.2節）。
+      showLogin(
+        "このGoogleアカウントはこのアプリの利用を許可されていません。開発者に連絡してください。"
+      );
+      return;
+    }
+
+    showLogin("予期しないエラーが発生しました。しばらくしてからもう一度お試しください。");
   } catch {
+    // fetchMe()自体の失敗（通信断）と、200応答後のres.json()失敗などを両方まとめて拾う。
+    // どちらの場合も画面に「確認しています…」を残したままにしないため、必ずメッセージを出す。
     showLogin("サーバーに接続できませんでした。しばらくしてからもう一度お試しください。");
-    return;
   }
-
-  if (res.status === 200) {
-    const { email } = await res.json();
-    showMain(email);
-    await renderSummary();
-    return;
-  }
-
-  if (res.status === 401) {
-    // トークンが無効・期限切れ＝再ログインで解決する（design.md 2.2節）。
-    clearIdToken();
-    showLogin("ログインが必要です。もう一度ログインしてください。");
-    return;
-  }
-
-  if (res.status === 403) {
-    // 許可リスト外＝再ログインしても解決しないため、その旨を明記する（design.md 2.2節）。
-    showLogin(
-      "このGoogleアカウントはこのアプリの利用を許可されていません。開発者に連絡してください。"
-    );
-    return;
-  }
-
-  showLogin("予期しないエラーが発生しました。しばらくしてからもう一度お試しください。");
 }
 
 // GSIスクリプトは<script async>で読み込んでおり、type="module"のauth.jsとは
