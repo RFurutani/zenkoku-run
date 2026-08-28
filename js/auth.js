@@ -5,6 +5,7 @@ import { initDisplayMode } from "./display-mode.js";
 import { APP_VERSION } from "./version.js";
 import "./diagnostics.js";
 import "./settings.js";
+import "./terms.js";
 
 // ログイン前後どちらの画面でも見える必要があるため、init()の成否を問わず
 // ここで即座に描画する（CLAUDE.mdセキュリティ規約8：textContentのみ使用）。

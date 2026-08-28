@@ -705,29 +705,55 @@ header {
   margin: 10px 0 0;
 }
 
-/* バージョン表示（T-45）。GitHub Pagesのキャッシュで古い版を掴んでいないか
-   スマホ実機で判別できるようにするための表示なので、目立たせない。 */
-#app-footer {
+/* バージョン表示（T-45）／診断／利用規約をまとめた行（T-45・T-51・2026-08-28）。
+   ログインできない状態でも開けるよう、login-screen/main-screenの外側に置く。
+   目立たせないよう小さく、テキストリンク調にする。 */
+#app-footer-bar {
   max-width: 420px;
   margin: 24px auto 0;
   padding-top: 10px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
   font-size: 10px;
   color: var(--ink-soft);
 }
 
-/* 診断画面。ログインできない状態でも開けるよう、login-screen/main-screenの外側に置く
-   （footerの直後）。パネル自体は既存の.sheet/.scrimをそのまま流用する。 */
-#diagnosticsButton {
-  display: block;
-  margin: 10px auto 0;
-  padding: 6px 14px;
-  border: 1px solid var(--rule);
-  border-radius: 6px;
-  background: #fff;
+.footer-sep {
+  color: var(--rule);
+}
+
+#diagnosticsButton,
+#termsButton {
+  padding: 2px;
+  border: none;
+  background: none;
   color: var(--ink-soft);
   font-size: 11px;
+  text-decoration: underline;
   cursor: pointer;
+}
+
+/* 利用規約本文（診断画面と同じ.sheet/.scrimを流用）。長文のため見出しは既存の
+   .secttlを転用し、本文は読みやすさ優先でやや小さめの行間にする。 */
+.terms-body {
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.terms-body p {
+  margin: 0 0 10px;
+}
+
+.terms-body ul {
+  margin: 0 0 10px;
+  padding-left: 20px;
+}
+
+.terms-body li {
+  margin-bottom: 4px;
 }
 
 .diagnostics-list {

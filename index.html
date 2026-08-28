@@ -86,8 +86,13 @@
   </div>
 </div>
 
-<footer id="app-footer"></footer>
-<button id="diagnosticsButton" type="button">診断</button>
+<footer id="app-footer-bar">
+  <span id="app-footer"></span>
+  <span class="footer-sep" aria-hidden="true">｜</span>
+  <button id="diagnosticsButton" type="button">診断</button>
+  <span class="footer-sep" aria-hidden="true">｜</span>
+  <button id="termsButton" type="button">利用規約</button>
+</footer>
 
 <div class="scrim" id="diagnosticsScrim"></div>
 <div class="sheet" id="diagnosticsPanel" role="dialog" aria-modal="true" aria-labelledby="diagnosticsTitle" aria-hidden="true">
@@ -96,6 +101,16 @@
   <dl id="diagnosticsList" class="diagnostics-list"></dl>
   <div class="btnrow">
     <button class="ghost" id="diagnosticsCloseButton" type="button">閉じる</button>
+  </div>
+</div>
+
+<div class="scrim" id="termsScrim"></div>
+<div class="sheet" id="termsPanel" role="dialog" aria-modal="true" aria-labelledby="termsTitle" aria-hidden="true">
+  <h3 id="termsTitle">利用規約</h3>
+  <p class="st" id="termsUpdated"></p>
+  <div id="termsBody" class="terms-body"></div>
+  <div class="btnrow">
+    <button class="ghost" id="termsCloseButton" type="button">閉じる</button>
   </div>
 </div>
 
