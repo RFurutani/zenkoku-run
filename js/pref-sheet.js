@@ -107,7 +107,11 @@ function attachPhotoUrl(photoId, imgEl, linkEl) {
 }
 
 // 写真1枚ぶんの要素（サムネイル＋別タブで原寸表示するリンク＋削除ボタン）を組み立てる。
-function renderPhotoItem(run, photo) {
+// 削除ボタンはeditable（自分の記録）のときだけ付ける。DELETE /api/photos/:idは
+// サーバー側もgetOwnedPhoto()で所有者限定のため他人の写真は消せないが（design.md
+// 4.10.2節）、押しても404になるだけのボタンを見せるのはUIの不具合として直す
+// （2026-08-28、他人の写真に削除ボタンが出ていた不具合の修正）。
+function renderPhotoItem(run, photo, editable) {
   const wrap = document.createElement("div");
   wrap.className = "photo-item";
 
@@ -121,13 +125,15 @@ function renderPhotoItem(run, photo) {
   link.appendChild(img);
   wrap.appendChild(link);
 
-  const delButton = document.createElement("button");
-  delButton.type = "button";
-  delButton.className = "photo-del";
-  delButton.textContent = "✕";
-  delButton.setAttribute("aria-label", "この写真を削除");
-  delButton.addEventListener("click", () => handleDeletePhotoClick(run, photo.id, delButton));
-  wrap.appendChild(delButton);
+  if (editable) {
+    const delButton = document.createElement("button");
+    delButton.type = "button";
+    delButton.className = "photo-del";
+    delButton.textContent = "✕";
+    delButton.setAttribute("aria-label", "この写真を削除");
+    delButton.addEventListener("click", () => handleDeletePhotoClick(run, photo.id, delButton));
+    wrap.appendChild(delButton);
+  }
 
   attachPhotoUrl(photo.id, img, link);
   return wrap;
@@ -237,16 +243,26 @@ function renderRuns(runs) {
       li.appendChild(memoDiv);
     }
 
+    // isOwnRunはチームモード限定のフィールド（個人モードには無くundefined）。
+    // undefined !== falseはtrueになるため、個人モードの記録は常にeditable扱いになる
+    // （従来どおり自分の記録として操作できる）。
+    const editable = run.isOwnRun !== false;
+
     const photos = run.photos || [];
     if (photos.length > 0) {
       const photosDiv = document.createElement("div");
       photosDiv.className = "photos";
       photos.forEach((photo) => {
-        photosDiv.appendChild(renderPhotoItem(run, photo));
+        photosDiv.appendChild(renderPhotoItem(run, photo, editable));
       });
       li.appendChild(photosDiv);
     }
-    renderAddPhotoControls(li, run, photos.length);
+    // 写真の追加もeditable（自分の記録）のときだけ。POST /api/photosはgetOwnedRun()で
+    // 所有者限定のため他人の記録には追加できないが（design.md 4.5節）、UIとしても
+    // 出さない（上のrenderPhotoItemと同じ理由）。
+    if (editable) {
+      renderAddPhotoControls(li, run, photos.length);
+    }
 
     runsEl.appendChild(li);
   });
