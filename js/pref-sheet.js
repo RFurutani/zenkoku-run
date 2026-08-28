@@ -6,6 +6,7 @@
 import { fetchPrefDetail, createRecord, fetchPhoto, uploadPhoto, deletePhoto } from "./api.js";
 import { renderSummary, getCurrentBadgeState } from "./summary.js";
 import { compressImage } from "./photo.js";
+import { getDisplayMode } from "./display-mode.js";
 
 const scrimEl = document.getElementById("scrim");
 const sheetEl = document.getElementById("sheet");
@@ -219,12 +220,14 @@ function renderRuns(runs) {
     dateSpan.textContent = run.runDate;
     li.appendChild(dateSpan);
     li.appendChild(document.createTextNode(run.cityName));
-    // registrantNameはT-39で追加（将来のチームモードT-36の下地。design.md 4.6節）。
-    // 現状は常に自分自身の名前だが、表示コードは複数人分を想定して作る。
+    // registrantNameはチームモードでのみ返る（個人モードはバックエンドがフィールド自体を
+    // 省略するため、この条件だけで「個人モードでは名前を出さない」を満たす。design.md
+    // 4.10.16節）。isOwnRunも同様にチームモード限定のため、自分の記録には★を付ける
+    // （画面仕様③、design.md 4.10.14節）。
     if (run.registrantName) {
       const whoSpan = document.createElement("span");
       whoSpan.className = "who";
-      whoSpan.textContent = run.registrantName;
+      whoSpan.textContent = run.isOwnRun ? `★ ${run.registrantName}` : run.registrantName;
       li.appendChild(whoSpan);
     }
     if (run.memo) {
@@ -393,10 +396,11 @@ function resetForm() {
 // renderSummary()と同じ考え方）。
 async function loadAndRenderPref(prefCode) {
   showSheetError("");
+  const { mode, teamId } = getDisplayMode();
 
   let res;
   try {
-    res = await fetchPrefDetail(prefCode);
+    res = await fetchPrefDetail(prefCode, mode, teamId);
   } catch {
     showSheetError("サーバーに接続できませんでした。しばらくしてからもう一度お試しください。");
     return false;
@@ -448,6 +452,15 @@ export async function openPrefSheet(prefCode, triggerEl) {
   closeButton.focus();
 
   await loadAndRenderPref(prefCode);
+}
+
+// タブ切替（display-mode.js）で、開いたままのシートに古いモードのデータが
+// 残らないよう閉じるために使う。シートが元々閉じている状態でclosePrefSheet()を
+// 呼ぶと、lastFocusedElが前回開いたときのままのため、意図せずフォーカスが
+// そちらへ飛んでしまう（タブボタンをクリックしたのにフォーカスが移動する不具合）。
+// そのため「開いている場合だけ閉じる」を切り出す。
+export function isPrefSheetOpen() {
+  return sheetEl.classList.contains("open");
 }
 
 export function closePrefSheet() {
@@ -571,8 +584,12 @@ async function handleRecordSubmit(event) {
     return;
   }
 
+  // isOwnRun !== falseとする（個人モードにはisOwnRunフィールド自体が無くundefinedのため）。
+  // チームモードで他人の記録とcity_code・run_dateが偶然一致しても、それは自分の重複登録
+  // ではないため確認ダイアログの対象にしない（画面仕様⑥、他人が先に制覇済みでも
+  // 自分の記録は別として登録できる）。
   const isDuplicate = (currentPrefData?.runs ?? []).some(
-    (run) => run.cityCode === cityCode && run.runDate === runDate
+    (run) => run.cityCode === cityCode && run.runDate === runDate && run.isOwnRun !== false
   );
   if (isDuplicate && !confirmDuplicateRun()) {
     return;

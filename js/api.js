@@ -40,18 +40,29 @@ export async function updateNickname(nickname) {
   });
 }
 
-// 47都道府県分の制覇状況サマリー（T-14）。呼び出し側は既にログイン済みの前提。
-export async function fetchSummary() {
+// mode=team用のクエリ文字列を組み立てる（T-36 M3）。modeがpersonalならteam_idは付けない。
+function modeParams(mode, teamId) {
+  const params = new URLSearchParams({ mode });
+  if (mode === "team" && teamId !== null && teamId !== undefined) {
+    params.set("team_id", teamId);
+  }
+  return params;
+}
+
+// 47都道府県分の制覇状況サマリー（T-14／T-36 M3でmode切替に対応）。
+// 呼び出し側は既にログイン済みの前提。
+export async function fetchSummary(mode = "personal", teamId = null) {
   const idToken = loadIdToken();
-  return fetch(`${API_BASE}/api/summary?mode=personal`, {
+  return fetch(`${API_BASE}/api/summary?${modeParams(mode, teamId)}`, {
     headers: { Authorization: `Bearer ${idToken}` },
   });
 }
 
-// 県詳細（市一覧・走行記録）（T-16）。呼び出し側は既にログイン済みの前提。
-export async function fetchPrefDetail(prefCode) {
+// 県詳細（市一覧・走行記録）（T-16／T-36 M3でmode切替に対応）。
+// 呼び出し側は既にログイン済みの前提。
+export async function fetchPrefDetail(prefCode, mode = "personal", teamId = null) {
   const idToken = loadIdToken();
-  return fetch(`${API_BASE}/api/pref/${prefCode}`, {
+  return fetch(`${API_BASE}/api/pref/${prefCode}?${modeParams(mode, teamId)}`, {
     headers: { Authorization: `Bearer ${idToken}` },
   });
 }

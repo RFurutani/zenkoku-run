@@ -96,10 +96,45 @@ header {
   margin: 0 0 6px;
 }
 
+/* 個人／チームの切り替えタブ（T-36 M3、design.md 4.10節・画面仕様①⑤⑦⑧）。
+   所属チームが無い、またはメンバー1人だけのチームしか無い利用者には
+   display-mode.jsがこの要素をhiddenのままにする（⑧）。 */
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.tab {
+  padding: 6px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink-soft);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tab.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+  font-weight: 700;
+}
+
 .tally {
   display: flex;
   align-items: baseline;
   gap: 8px;
+  margin-top: 14px;
+}
+
+/* チームモードでの「あなたN」の内訳表示（画面仕様④）。個人モードでは常にhidden。 */
+.mine {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ink-soft);
+  margin-left: 2px;
 }
 
 .tally .big {

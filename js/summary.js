@@ -5,6 +5,7 @@
 import { LAYOUT, REGION, RORDER, RTOTAL } from "./map-layout.js";
 import { fetchSummary } from "./api.js";
 import { openPrefSheet } from "./pref-sheet.js";
+import { getDisplayMode } from "./display-mode.js";
 
 const mapEl = document.getElementById("map");
 const ticksEl = document.getElementById("ticks");
@@ -17,6 +18,10 @@ const citiesTotalEl = document.getElementById("citiesTotal");
 const goldNEl = document.getElementById("goldN");
 const nationalBadgeEl = document.getElementById("nationalBadge");
 const summaryErrorEl = document.getElementById("summary-error");
+const prefsMineWrapEl = document.getElementById("prefsMineWrap");
+const prefsMineEl = document.getElementById("prefsMine");
+const citiesMineWrapEl = document.getElementById("citiesMineWrap");
+const citiesMineEl = document.getElementById("citiesMine");
 
 // バッジ判定用に、直近のmissingInApiガードを通過したデータだけを保持する（T-39）。
 // pref-sheet.jsのgetCurrentBadgeState()呼び出しは常にこの2つを経由するため、
@@ -160,6 +165,17 @@ function renderTotals(totals) {
   const achievedNational = totals.fullyConqueredPrefs === 47;
   nationalBadgeEl.hidden = !achievedNational;
   nationalBadgeEl.textContent = achievedNational ? "👑 全国制覇" : "";
+
+  // 「あなたN」の内訳（画面仕様④）。totals.prefsConqueredMineはチームモードの
+  // レスポンスにしか無い（design.md 4.10.16・4.10.17節）ため、このフィールドの
+  // 有無だけで出し分ける。表示モードの値そのものは参照しない。
+  const showMine = typeof totals.prefsConqueredMine === "number";
+  prefsMineWrapEl.hidden = !showMine;
+  citiesMineWrapEl.hidden = !showMine;
+  if (showMine) {
+    prefsMineEl.textContent = totals.prefsConqueredMine;
+    citiesMineEl.textContent = totals.citiesConqueredMine;
+  }
 }
 
 // 「達成した瞬間」の演出（T-39）用に、直近のバッジ状態を外部（pref-sheet.js）へ渡す。
@@ -184,7 +200,8 @@ export async function renderSummary() {
 
   let data;
   try {
-    const res = await fetchSummary();
+    const { mode, teamId } = getDisplayMode();
+    const res = await fetchSummary(mode, teamId);
     if (!res.ok) {
       showSummaryError("集計情報の取得に失敗しました。しばらくしてからもう一度お試しください。");
       return false;

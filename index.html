@@ -25,17 +25,20 @@
 
   <header>
     <p class="eyebrow">全国制覇ラン / 47 PREFECTURES</p>
-    <div class="tally">
-      <span class="big num" id="done">0</span><span class="of num">/ <span id="prefsTotal">47</span> 都道府県</span>
-      <span class="pct num" id="pct">0.0<small>%</small></span>
-    </div>
-    <div class="sub">
-      <span>自治体の制覇 <b id="cityDone">0</b> / <b id="citiesTotal">815</b></span>
-      <span>完全制覇（全自治体）<b id="goldN">0</b> 県 <span id="nationalBadge" class="badge" hidden></span></span>
-    </div>
-    <div class="ticks" id="ticks"></div>
-    <div class="regions" id="regions"></div>
   </header>
+
+  <div class="tabs" id="modeTabs" role="tablist" hidden></div>
+
+  <div class="tally">
+    <span class="big num" id="done">0</span><span class="of num">/ <span id="prefsTotal">47</span> 都道府県<span id="prefsMineWrap" class="mine" hidden>（あなた <b id="prefsMine">0</b>）</span></span>
+    <span class="pct num" id="pct">0.0<small>%</small></span>
+  </div>
+  <div class="sub">
+    <span>自治体の制覇 <b id="cityDone">0</b> / <b id="citiesTotal">815</b><span id="citiesMineWrap" class="mine" hidden>（あなた <b id="citiesMine">0</b>）</span></span>
+    <span>完全制覇（全自治体）<b id="goldN">0</b> 県 <span id="nationalBadge" class="badge" hidden></span></span>
+  </div>
+  <div class="ticks" id="ticks"></div>
+  <div class="regions" id="regions"></div>
 
   <div class="mapwrap"><div id="map"></div></div>
 

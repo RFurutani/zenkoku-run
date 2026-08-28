@@ -1,6 +1,7 @@
 import { fetchConfig, fetchMe } from "./api.js";
 import { saveIdToken, loadIdToken, clearIdToken, isExpired } from "./token-store.js";
 import { renderSummary } from "./summary.js";
+import { initDisplayMode } from "./display-mode.js";
 import { APP_VERSION } from "./version.js";
 import "./diagnostics.js";
 import "./settings.js";
@@ -53,8 +54,11 @@ async function checkLoginState() {
     const res = await fetchMe();
 
     if (res.status === 200) {
-      const { email } = await res.json();
-      showMain(email);
+      const meData = await res.json();
+      showMain(meData.email);
+      // モードの記憶はしない（画面仕様⑤）ため、ログイン確認のたびに必ず「個人」から
+      // 始まる。タブの描画（人数2人未満のチームは出さない、⑧）もここで行う。
+      initDisplayMode(meData);
       await renderSummary();
       return;
     }
