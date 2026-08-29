@@ -112,3 +112,20 @@ export async function deletePhoto(photoId) {
     headers: { Authorization: `Bearer ${idToken}` },
   });
 }
+
+// チームの新着通知（T-50）。「その人にとって初めての制覇」だけを人ごとにまとめて返す。
+export async function fetchTeamUpdates(teamId) {
+  const idToken = loadIdToken();
+  return fetch(`${API_BASE}/api/teams/${teamId}/updates`, {
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+}
+
+// 通知を閉じたときに呼ぶ既読化（T-50）。last_seen_atを「今」に更新する。
+export async function markTeamUpdatesSeen(teamId) {
+  const idToken = loadIdToken();
+  return fetch(`${API_BASE}/api/teams/${teamId}/seen`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+}

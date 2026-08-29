@@ -2,6 +2,7 @@ import { fetchConfig, fetchMe } from "./api.js";
 import { saveIdToken, loadIdToken, clearIdToken, isExpired } from "./token-store.js";
 import { renderSummary } from "./summary.js";
 import { initDisplayMode } from "./display-mode.js";
+import { checkTeamUpdates } from "./team-updates.js";
 import { APP_VERSION } from "./version.js";
 import "./diagnostics.js";
 import "./settings.js";
@@ -61,6 +62,8 @@ async function checkLoginState() {
       // 始まる。タブの描画（人数2人未満のチームは出さない、⑧）もここで行う。
       initDisplayMode(meData);
       await renderSummary();
+      // モードに関係なく出す（個人モードから始まっても通知は独立に出す、design.md仕様⑦）。
+      await checkTeamUpdates(meData);
       return;
     }
 

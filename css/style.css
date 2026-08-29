@@ -756,6 +756,31 @@ header {
   margin-bottom: 4px;
 }
 
+/* チームの新着通知（T-50、診断画面と同じ.sheet/.scrimを流用）。 */
+.team-updates-list {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.team-updates-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.team-updates-list li:last-child {
+  border-bottom: none;
+}
+
+#teamUpdatesError {
+  color: var(--danger);
+  font-size: 13px;
+  min-height: 1.6em;
+  margin: 10px 0 0;
+}
+
 .diagnostics-list {
   margin: 14px 0 0;
 }
