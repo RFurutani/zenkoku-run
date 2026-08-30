@@ -67,8 +67,9 @@ export async function fetchPrefDetail(prefCode, mode = "personal", teamId = null
   });
 }
 
-// 走行記録の登録（T-17）。bodyは{city_code, run_date, memo}のスネークケースのまま渡す
-// （design.md 4.2節のAPI仕様どおり。呼び出し側でキー名を変換しない）。
+// 走行記録の登録（T-17／T-49でdistance_km追加）。bodyは
+// {city_code, run_date, memo, distance_km}のスネークケースのまま渡す
+// （design.md 4.2節・4.11節のAPI仕様どおり。呼び出し側でキー名を変換しない）。
 export async function createRecord(body) {
   const idToken = loadIdToken();
   return fetch(`${API_BASE}/api/records`, {

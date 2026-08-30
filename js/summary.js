@@ -6,6 +6,7 @@ import { LAYOUT, REGION, RORDER, RTOTAL } from "./map-layout.js";
 import { fetchSummary } from "./api.js";
 import { openPrefSheet } from "./pref-sheet.js";
 import { getDisplayMode } from "./display-mode.js";
+import { openDistanceSheet } from "./distance-sheet.js";
 
 const mapEl = document.getElementById("map");
 const ticksEl = document.getElementById("ticks");
@@ -22,6 +23,10 @@ const prefsMineWrapEl = document.getElementById("prefsMineWrap");
 const prefsMineEl = document.getElementById("prefsMine");
 const citiesMineWrapEl = document.getElementById("citiesMineWrap");
 const citiesMineEl = document.getElementById("citiesMine");
+const distanceRowEl = document.getElementById("distanceRow");
+const distanceKmEl = document.getElementById("distanceKm");
+const distanceMineWrapEl = document.getElementById("distanceMineWrap");
+const distanceMineEl = document.getElementById("distanceMine");
 
 // バッジ判定用に、直近のmissingInApiガードを通過したデータだけを保持する（T-39）。
 // pref-sheet.jsのgetCurrentBadgeState()呼び出しは常にこの2つを経由するため、
@@ -176,6 +181,16 @@ function renderTotals(totals) {
     prefsMineEl.textContent = totals.prefsConqueredMine;
     citiesMineEl.textContent = totals.citiesConqueredMine;
   }
+
+  // 走行距離（T-49、design.md 4.11節）。「あなた」の内訳は都道府県・市の件数と違い
+  // 単位（km）が無いと意味が通らないため、あえてbの外にも"km"を書く
+  // （design.md 4.11節「表示」の決定どおり）。
+  distanceKmEl.textContent = totals.distanceKm.toFixed(1);
+  const showDistanceMine = typeof totals.distanceKmMine === "number";
+  distanceMineWrapEl.hidden = !showDistanceMine;
+  if (showDistanceMine) {
+    distanceMineEl.textContent = totals.distanceKmMine.toFixed(1);
+  }
 }
 
 // 「達成した瞬間」の演出（T-39）用に、直近のバッジ状態を外部（pref-sheet.js）へ渡す。
@@ -236,3 +251,14 @@ export async function renderSummary() {
   renderTotals(data.totals);
   return true;
 }
+
+// 走行距離の行（T-49）。タップまたはEnter/Spaceで可視化シートを開く（M4、.cellと同じ
+// キーボード操作パターン）。地図のセルと違い要素は再生成されない静的なDOMのため、
+// リスナーはモジュール読み込み時に1回だけ登録すればよい。
+distanceRowEl.addEventListener("click", () => openDistanceSheet());
+distanceRowEl.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    openDistanceSheet();
+  }
+});

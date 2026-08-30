@@ -175,6 +175,17 @@ header {
   color: var(--ink);
 }
 
+/* 走行距離の行（T-49）。タップして可視化シートを開く（M4）。.subの見た目を流用しつつ、
+   1要素だけなのでjustify-content: space-betweenは実質「左寄せ」として働く。 */
+.distance-sub {
+  cursor: pointer;
+}
+
+.distance-sub:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
 .ticks {
   display: flex;
   gap: 2px;
@@ -499,6 +510,17 @@ header {
 }
 
 .existing .who::before {
+  content: "・";
+}
+
+/* 走行距離（T-49）。距離未入力の記録も「—」で必ず表示する（空欄にしない）。 */
+.existing .dist {
+  font-size: 11px;
+  color: var(--ink-soft);
+  margin-left: 6px;
+}
+
+.existing .dist::before {
   content: "・";
 }
 

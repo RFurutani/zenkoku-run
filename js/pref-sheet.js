@@ -23,6 +23,7 @@ const celebrationEl = document.getElementById("celebrationToast");
 const formEl = document.getElementById("recordForm");
 const fCityEl = document.getElementById("fCity");
 const fDateEl = document.getElementById("fDate");
+const fDistanceEl = document.getElementById("fDistance");
 const fMemoEl = document.getElementById("fMemo");
 const formErrorEl = document.getElementById("formError");
 const formSuccessEl = document.getElementById("formSuccess");
@@ -226,6 +227,14 @@ function renderRuns(runs) {
     dateSpan.textContent = run.runDate;
     li.appendChild(dateSpan);
     li.appendChild(document.createTextNode(run.cityName));
+
+    // 走行距離（T-49）。距離未入力（null）の記録も「—」で必ず表示し、空欄にしない
+    // （design.md 4.11節）。
+    const distSpan = document.createElement("span");
+    distSpan.className = "dist";
+    distSpan.textContent = typeof run.distanceKm === "number" ? `${run.distanceKm.toFixed(1)} km` : "—";
+    li.appendChild(distSpan);
+
     // registrantNameはチームモードでのみ返る（個人モードはバックエンドがフィールド自体を
     // 省略するため、この条件だけで「個人モードでは名前を出さない」を満たす。design.md
     // 4.10.16節）。isOwnRunも同様にチームモード限定のため、自分の記録には★を付ける
@@ -399,6 +408,7 @@ function resetForm() {
   fCityEl.value = "";
   fDateEl.value = todayStr();
   fDateEl.max = todayStr();
+  fDistanceEl.value = "";
   fMemoEl.value = "";
   showFormError("");
   showFormSuccess("");
@@ -589,6 +599,8 @@ async function handleRecordSubmit(event) {
 
   const cityCode = fCityEl.value;
   const runDate = fDateEl.value;
+  const distanceInput = fDistanceEl.value.trim();
+  const distanceKm = distanceInput === "" ? null : Number(distanceInput);
   const memo = fMemoEl.value.trim();
 
   if (!cityCode) {
@@ -615,7 +627,12 @@ async function handleRecordSubmit(event) {
   submitButtonEl.disabled = true;
 
   try {
-    const res = await createRecord({ city_code: cityCode, run_date: runDate, memo });
+    const res = await createRecord({
+      city_code: cityCode,
+      run_date: runDate,
+      memo,
+      distance_km: distanceKm,
+    });
 
     if (res.status === 401) {
       // このシート（フォームを含む）は#main-screenの外側にある独立した要素で、
