@@ -33,6 +33,9 @@ const distanceMineEl = document.getElementById("distanceMine");
 // LAYOUTとAPIのprefNameが食い違った回のデータでバッジ判定が行われることはない。
 let lastByPrefName = null;
 let lastTotals = null;
+// 個人モードのみGET /api/summaryに同梱される（design.md 4.11節）。チームモードでは
+// undefinedのまま（月別集計はGET /api/teams/:id/distanceから別に取る）。
+let lastMonthlyDistanceKm = null;
 
 function showSummaryError(message) {
   summaryErrorEl.textContent = message;
@@ -196,6 +199,17 @@ function renderTotals(totals) {
 // 「達成した瞬間」の演出（T-39）用に、直近のバッジ状態を外部（pref-sheet.js）へ渡す。
 // missingInApiガードを通過したデータのみが lastByPrefName/lastTotals に入るため
 // （renderSummary()参照）、ガードに守られていない生データでバッジ判定されることはない。
+// 走行距離の可視化シート（T-49、M4）用。直近のGET /api/summaryの結果を再利用し、
+// シートを開くたびに同じデータをもう一度取りに行かないようにする
+// （個人モードの累計・月別内訳はここから、チームモードの累計はここから、
+// チームモードの月別内訳・メンバー別はGET /api/teams/:id/distanceから別に取る）。
+export function getLastDistanceData() {
+  return {
+    totals: lastTotals,
+    monthlyDistanceKm: lastMonthlyDistanceKm,
+  };
+}
+
 export function getCurrentBadgeState() {
   if (!lastByPrefName || !lastTotals) {
     return { regions: new Map(), national: false };
@@ -244,6 +258,7 @@ export async function renderSummary() {
   // ここまでガードを通過したデータだけをバッジ判定用に保持する（getCurrentBadgeState()参照）。
   lastByPrefName = byPrefName;
   lastTotals = data.totals;
+  lastMonthlyDistanceKm = data.monthlyDistanceKm ?? null;
 
   applyStages(byPrefName);
   renderTicks(byPrefName);

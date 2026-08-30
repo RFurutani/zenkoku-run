@@ -114,6 +114,16 @@ export async function deletePhoto(photoId) {
   });
 }
 
+// 走行距離の可視化シート用集計（T-49、チームのみ。design.md 4.11節）。
+// 月別集計・メンバー別集計を返す。個人モードの月別集計はGET /api/summaryに
+// 同梱されるためこの関数は使わない（fetchSummary参照）。
+export async function fetchTeamDistance(teamId) {
+  const idToken = loadIdToken();
+  return fetch(`${API_BASE}/api/teams/${teamId}/distance`, {
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+}
+
 // チームの新着通知（T-50）。「その人にとって初めての制覇」だけを人ごとにまとめて返す。
 export async function fetchTeamUpdates(teamId) {
   const idToken = loadIdToken();
