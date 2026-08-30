@@ -39,6 +39,7 @@
   </div>
   <div class="sub distance-sub" id="distanceRow" role="button" tabindex="0" aria-label="走行距離の詳細を開く">
     <span>走行 <b id="distanceKm">0.0</b> km<span id="distanceMineWrap" class="mine" hidden>（あなた <b id="distanceMine">0.0</b> km）</span></span>
+    <span class="tap-hint" aria-hidden="true">← タップ</span>
   </div>
   <div class="ticks" id="ticks"></div>
   <div class="regions" id="regions"></div>
@@ -152,6 +153,34 @@
   <ul id="teamUpdatesList" class="team-updates-list"></ul>
   <div class="btnrow">
     <button class="ghost" id="teamUpdatesCloseButton" type="button">閉じる</button>
+  </div>
+</div>
+
+<div class="scrim" id="distanceScrim"></div>
+<div class="sheet" id="distancePanel" role="dialog" aria-modal="true" aria-labelledby="distanceTitle" aria-hidden="true">
+  <h3 id="distanceTitle">走行距離</h3>
+  <p id="distanceError" role="alert"></p>
+
+  <div class="tally distance-total">
+    <span class="big num" id="distanceTotal">0.0</span><span class="of num">km<span id="distanceTotalMineWrap" class="mine" hidden>（うち あなた <b id="distanceTotalMine">0.0</b> km）</span></span>
+  </div>
+
+  <div id="distanceEmpty" class="st" hidden>まだ走行距離の記録がありません。記録の登録時に距離を入力すると、ここに表示されます。</div>
+
+  <div id="distanceDetail" hidden>
+    <div class="secttl">月別（直近12ヶ月）</div>
+    <div class="dist-chart" id="distanceChart"></div>
+
+    <p class="st" id="distanceConversion"></p>
+
+    <div id="distanceMembersWrap" hidden>
+      <div class="secttl">メンバー別</div>
+      <ul class="dist-members" id="distanceMembersList"></ul>
+    </div>
+  </div>
+
+  <div class="btnrow">
+    <button class="ghost" id="distanceCloseButton" type="button">閉じる</button>
   </div>
 </div>
 

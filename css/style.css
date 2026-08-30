@@ -175,15 +175,37 @@ header {
   color: var(--ink);
 }
 
-/* 走行距離の行（T-49）。タップして可視化シートを開く（M4）。.subの見た目を流用しつつ、
-   1要素だけなのでjustify-content: space-betweenは実質「左寄せ」として働く。 */
+/* 走行距離の行（T-49）。タップして可視化シートを開く（M4）。他の行（.sub）と違い、
+   ここだけ操作できることが見た目からも分かるよう、既存の設定ボタン
+   （#settingsButton）と同じ枠線・角丸で囲む（2026-08-30、開発者指摘で追加）。 */
 .distance-sub {
   cursor: pointer;
+  align-items: center;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
 }
 
 .distance-sub:focus-visible {
   outline: 3px solid var(--ink);
   outline-offset: 2px;
+}
+
+/* 左側のテキストだけを伸縮対象にする。チームモードの長い文言
+   （例：「走行1,247.8 km（あなた486.3 km）」）でも、右の「← タップ」を
+   押し出さずに左側だけが2行に折り返す（開発者指摘：スマホ幅対策）。 */
+.distance-sub > span:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.distance-sub .tap-hint {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  margin-left: 8px;
 }
 
 .ticks {
@@ -819,4 +841,70 @@ header {
   font-size: 13px;
   color: var(--ink);
   word-break: break-all;
+}
+
+/* 走行距離の可視化シート（T-49 M4、design.md 4.11節）。 */
+.distance-total .of {
+  margin-left: 4px;
+}
+
+/* 月別棒グラフ。Chart.js等は使わず、地図（.cell）と同じくCSSだけで組み立てる
+   （「ビルドツールを増やさない」方針、CLAUDE.md参照）。各列はflexboxで下寄せにし、
+   バーの高さだけをJSからインラインstyleで指定する。 */
+.dist-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 130px;
+  margin: 10px 0 4px;
+}
+
+.dist-chart-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+}
+
+.dist-chart-value {
+  font-size: 9px;
+  color: var(--ink-soft);
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+
+.dist-chart-bar {
+  width: 100%;
+  max-width: 22px;
+  background: var(--t2);
+  border-radius: 2px 2px 0 0;
+  min-height: 2px;
+}
+
+.dist-chart-month {
+  font-size: 9px;
+  color: var(--ink-soft);
+  margin-top: 4px;
+}
+
+.dist-members {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.dist-members li {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.dist-members li:last-child {
+  border-bottom: none;
 }
