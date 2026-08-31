@@ -818,6 +818,24 @@ header {
   border-bottom: none;
 }
 
+/* 更新のお知らせ（T-57、診断画面と同じ.sheet/.scrimを流用）。 */
+.whats-new-list {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.whats-new-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.whats-new-list li:last-child {
+  border-bottom: none;
+}
+
 #teamUpdatesError {
   color: var(--danger);
   font-size: 13px;

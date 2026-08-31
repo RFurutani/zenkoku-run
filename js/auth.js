@@ -3,6 +3,7 @@ import { saveIdToken, loadIdToken, clearIdToken, isExpired } from "./token-store
 import { renderSummary } from "./summary.js";
 import { initDisplayMode } from "./display-mode.js";
 import { checkTeamUpdates } from "./team-updates.js";
+import { checkWhatsNew } from "./whatsnew.js";
 import { APP_VERSION } from "./version.js";
 import "./diagnostics.js";
 import "./settings.js";
@@ -63,7 +64,10 @@ async function checkLoginState() {
       initDisplayMode(meData);
       await renderSummary();
       // モードに関係なく出す（個人モードから始まっても通知は独立に出す、design.md仕様⑦）。
+      // チーム通知 → 更新のお知らせ の順で直列に待つ（同時に2枚のシートが開かないように。
+      // どちらもモーダルが閉じられるまでPromiseがresolveしない作りになっている。T-57）。
       await checkTeamUpdates(meData);
+      await checkWhatsNew(meData);
       return;
     }
 

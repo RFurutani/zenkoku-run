@@ -1,4 +1,5 @@
 import { loadIdToken } from "./token-store.js";
+import { APP_VERSION } from "./version.js";
 
 const API_BASE =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
@@ -19,10 +20,17 @@ export async function fetchHealth() {
 }
 
 // ログイン状態の判定用。200/401/403はここでは判定せず、呼び出し側に委ねる。
+// X-App-Versionは、初回ログインでusers行が新規作成されるときだけ使われる
+// （worker/src/auth.jsのensureUserRegistered参照。T-57：登録直後の利用者に
+// 「使ったことのないアプリの更新履歴」を見せないための情報で、2回目以降の
+// ログインでは無視される）。
 export async function fetchMe() {
   const idToken = loadIdToken();
   return fetch(`${API_BASE}/api/me`, {
-    headers: { Authorization: `Bearer ${idToken}` },
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+      "X-App-Version": APP_VERSION,
+    },
   });
 }
 
@@ -37,6 +45,20 @@ export async function updateNickname(nickname) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ nickname }),
+  });
+}
+
+// 更新のお知らせ（T-57）を閉じたときの既読化用。design.md 4.12節：値はサーバー側で
+// 検証しないため、常にversion.jsのAPP_VERSIONをそのまま渡す。
+export async function updateLastSeenVersion(version) {
+  const idToken = loadIdToken();
+  return fetch(`${API_BASE}/api/me`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ last_seen_version: version }),
   });
 }
 

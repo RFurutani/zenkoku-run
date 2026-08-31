@@ -16,6 +16,11 @@ let lastFocusedEl = null;
 // （取得に失敗して開いた場合はnullのままにし、既読化を呼ばせない。実際には
 // 何も見せられていないため「見た」ことにしてはならない）。
 let openTeamId = null;
+// 開いている間だけ値を持つ。checkTeamUpdates()が返すPromiseを、利用者が閉じ終わった
+// 後にresolveするための関数（T-57：更新のお知らせと同時に開いて重ならないよう、
+// auth.js側で「閉じるまで」を直列に待てるようにする。開かなかった場合は
+// checkTeamUpdates内で即resolveするため、ここでセットされない）。
+let resolveShown = null;
 
 function renderUpdateLine(update) {
   const li = document.createElement("li");
@@ -48,35 +53,52 @@ async function closePanel() {
   // 読む前に閉じた場合に二度と見られなくなるため）。
   const teamId = openTeamId;
   openTeamId = null;
-  if (teamId === null) {
-    return;
-  }
-  try {
-    const res = await markTeamUpdatesSeen(teamId);
-    if (!res.ok) {
-      // 既読化の失敗は利用者の操作を妨げるほどではないため、モーダルは開かず
-      // コンソールにだけ残す（次回ログイン時にもう一度同じ通知が出るだけで、
-      // 実害は「同じ通知をもう一度見る」にとどまるため）。
-      console.error("通知の既読化に失敗しました", res.status);
+  if (teamId !== null) {
+    try {
+      const res = await markTeamUpdatesSeen(teamId);
+      if (!res.ok) {
+        // 既読化の失敗は利用者の操作を妨げるほどではないため、モーダルは開かず
+        // コンソールにだけ残す（次回ログイン時にもう一度同じ通知が出るだけで、
+        // 実害は「同じ通知をもう一度見る」にとどまるため）。
+        console.error("通知の既読化に失敗しました", res.status);
+      }
+    } catch (err) {
+      console.error("通知の既読化に失敗しました", err);
     }
-  } catch (err) {
-    console.error("通知の既読化に失敗しました", err);
+  }
+
+  const resolve = resolveShown;
+  resolveShown = null;
+  if (resolve) {
+    resolve();
   }
 }
 
-function showFetchError() {
+function showFetchError(resolve) {
   openTeamId = null;
   listEl.textContent = "";
   errorEl.textContent =
     "チームの新着を取得できませんでした。しばらくしてからもう一度お試しください。";
+  resolveShown = resolve;
   openPanel();
 }
 
 // ログイン直後、GET /api/meのteamsをもとにauth.jsから呼ぶ。
 // チームに所属していない利用者（teamsが空）では、通知取得自体を呼ばない。
-export async function checkTeamUpdates(meData) {
+// 返すPromiseは、モーダルを開かなかった場合は即座に、開いた場合は利用者が
+// 閉じ終わるまでresolveしない（T-57：更新のお知らせと同時に開かないよう、
+// auth.js側で`await checkTeamUpdates(meData); await checkWhatsNew(meData);`と
+// 直列に待てるようにするため）。
+export function checkTeamUpdates(meData) {
+  return new Promise((resolve) => {
+    runCheck(meData, resolve);
+  });
+}
+
+async function runCheck(meData, resolve) {
   const teams = meData?.teams ?? [];
   if (teams.length === 0) {
+    resolve();
     return;
   }
 
@@ -89,13 +111,13 @@ export async function checkTeamUpdates(meData) {
     res = await fetchTeamUpdates(teamId);
   } catch (err) {
     console.error("チームの新着通知を取得できませんでした", err);
-    showFetchError();
+    showFetchError(resolve);
     return;
   }
 
   if (!res.ok) {
     console.error("チームの新着通知を取得できませんでした", res.status);
-    showFetchError();
+    showFetchError(resolve);
     return;
   }
 
@@ -104,12 +126,13 @@ export async function checkTeamUpdates(meData) {
     data = await res.json();
   } catch (err) {
     console.error("チームの新着通知の解析に失敗しました", err);
-    showFetchError();
+    showFetchError(resolve);
     return;
   }
 
   const updates = data.updates ?? [];
   if (updates.length === 0) {
+    resolve();
     return;
   }
 
@@ -117,6 +140,7 @@ export async function checkTeamUpdates(meData) {
   listEl.textContent = "";
   updates.forEach((update) => listEl.appendChild(renderUpdateLine(update)));
   openTeamId = teamId;
+  resolveShown = resolve;
   openPanel();
 }
 
