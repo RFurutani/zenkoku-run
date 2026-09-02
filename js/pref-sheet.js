@@ -3,7 +3,15 @@
 // CLAUDE.mdセキュリティ規約8：サーバー由来の文字列（県名・市名・メモ）はinnerHTMLで描画せず、
 // textContentまたはcreateElementで組み立てる。
 
-import { fetchPrefDetail, createRecord, fetchPhoto, uploadPhoto, deletePhoto } from "./api.js";
+import {
+  fetchPrefDetail,
+  createRecord,
+  fetchPhoto,
+  uploadPhoto,
+  deletePhoto,
+  updateRun,
+  deleteRun,
+} from "./api.js";
 import { renderSummary, getCurrentBadgeState } from "./summary.js";
 import { compressImage } from "./photo.js";
 import { getDisplayMode } from "./display-mode.js";
@@ -38,6 +46,14 @@ let submitInFlight = false;
 
 // worker/src/router.jsのMAX_PHOTOS_PER_RUNと一致させること（design.md 4.7節）。
 const MAX_PHOTOS_PER_RUN = 2;
+// worker/src/router.jsのDISTANCE_KM_MIN/MAXと一致させること（design.md 4.13節、
+// #recordFormのfDistanceと同じ範囲）。
+const RUN_DISTANCE_MIN = 0.1;
+const RUN_DISTANCE_MAX = 500;
+
+// T-56：一覧内インライン編集で、いま展開中の走行記録ID（1件のみ）。
+// design.md 4.13節：写真アップロード中フラグ（uploadingRunIds）と同じ、1状態1変数のパターン。
+let editingRunId = null;
 
 // アップロード直後のプレビューはKVから取り直さず、ここに保持したローカルBlobの
 // オブジェクトURLをそのまま使い続ける（design.md 4.4節：KVは書き込み直後
@@ -204,6 +220,235 @@ function renderAddPhotoControls(li, run, currentCount) {
   li.appendChild(statusDiv);
 }
 
+// 「✦ 修正」「🗑 削除」の2ボタン（T-56）。editable（自分の記録）のときだけ
+// 呼ばれる（renderPhotoItem・renderAddPhotoControlsと同じ条件、design.md 4.13節。
+// 🔴 チームモードで他人の記録に出さないことがv1.6.1の教訓＝呼び出し元で
+// isOwnRun !== falseを確認済みの前提）。
+function renderRunActions(li, run) {
+  const actions = document.createElement("div");
+  actions.className = "run-actions";
+
+  const editButton = document.createElement("button");
+  editButton.type = "button";
+  editButton.className = "run-edit-btn";
+  editButton.textContent = "✦ 修正";
+  editButton.addEventListener("click", () => {
+    editingRunId = run.runId;
+    renderRuns(currentPrefData.runs);
+  });
+
+  const deleteButton = document.createElement("button");
+  deleteButton.type = "button";
+  deleteButton.className = "run-delete-btn";
+  deleteButton.textContent = "🗑 削除";
+  deleteButton.addEventListener("click", () => handleDeleteRunClick(run, deleteButton));
+
+  actions.appendChild(editButton);
+  actions.appendChild(deleteButton);
+  li.appendChild(actions);
+}
+
+// 一覧内インライン編集フォーム（T-56、design.md 4.13節：開発者承認済みのUI）。
+// 対象は run_date・distance_km・memo のみ（city_codeは対象外＝F-23）。
+function renderRunEditForm(li, run) {
+  const idPrefix = `runEdit-${run.runId}`;
+
+  const cityLabel = document.createElement("div");
+  cityLabel.className = "d";
+  cityLabel.textContent = run.cityName;
+  li.appendChild(cityLabel);
+
+  const form = document.createElement("div");
+  form.className = "run-edit-form";
+
+  const dateLabel = document.createElement("label");
+  dateLabel.htmlFor = `${idPrefix}-date`;
+  dateLabel.textContent = "日付";
+  const dateInput = document.createElement("input");
+  dateInput.id = `${idPrefix}-date`;
+  dateInput.type = "date";
+  dateInput.value = run.runDate;
+  dateInput.max = todayStr();
+
+  const distLabel = document.createElement("label");
+  distLabel.htmlFor = `${idPrefix}-distance`;
+  distLabel.textContent = "距離（km、任意）";
+  const distInput = document.createElement("input");
+  distInput.id = `${idPrefix}-distance`;
+  distInput.type = "number";
+  distInput.inputMode = "decimal";
+  distInput.min = String(RUN_DISTANCE_MIN);
+  distInput.max = String(RUN_DISTANCE_MAX);
+  distInput.step = "0.1";
+  distInput.value = typeof run.distanceKm === "number" ? run.distanceKm : "";
+
+  const memoLabel = document.createElement("label");
+  memoLabel.htmlFor = `${idPrefix}-memo`;
+  memoLabel.textContent = "メモ（任意）";
+  const memoInput = document.createElement("textarea");
+  memoInput.id = `${idPrefix}-memo`;
+  memoInput.value = run.memo || "";
+
+  const errorEl = document.createElement("p");
+  errorEl.className = "run-edit-error";
+  errorEl.setAttribute("role", "alert");
+
+  const saveButton = document.createElement("button");
+  saveButton.type = "button";
+  saveButton.className = "run-edit-save";
+  saveButton.textContent = "保存";
+
+  const cancelButton = document.createElement("button");
+  cancelButton.type = "button";
+  cancelButton.className = "run-edit-cancel";
+  cancelButton.textContent = "キャンセル";
+  cancelButton.addEventListener("click", () => {
+    editingRunId = null;
+    renderRuns(currentPrefData.runs);
+  });
+
+  saveButton.addEventListener("click", () =>
+    handleUpdateRunSubmit(run, dateInput, distInput, memoInput, errorEl, saveButton, cancelButton)
+  );
+
+  const btnRow = document.createElement("div");
+  btnRow.className = "run-edit-actions";
+  btnRow.appendChild(saveButton);
+  btnRow.appendChild(cancelButton);
+
+  form.appendChild(dateLabel);
+  form.appendChild(dateInput);
+  form.appendChild(distLabel);
+  form.appendChild(distInput);
+  form.appendChild(memoLabel);
+  form.appendChild(memoInput);
+  form.appendChild(errorEl);
+  form.appendChild(btnRow);
+
+  li.appendChild(form);
+}
+
+// 保存（PATCH /api/runs/:id）。クライアント側の検証はサーバーと同じ範囲を先に弾くが、
+// 最終判定はサーバー側（validateDistanceKm等）を正とする（design.md 4.13節）。
+async function handleUpdateRunSubmit(run, dateInput, distInput, memoInput, errorEl, saveButton, cancelButton) {
+  errorEl.textContent = "";
+
+  const runDate = dateInput.value;
+  if (!runDate) {
+    errorEl.textContent = "走行日を入力してください。";
+    return;
+  }
+
+  const distanceInput = distInput.value.trim();
+  const distanceKm = distanceInput === "" ? null : Number(distanceInput);
+  if (
+    distanceKm !== null &&
+    (!Number.isFinite(distanceKm) || distanceKm < RUN_DISTANCE_MIN || distanceKm > RUN_DISTANCE_MAX)
+  ) {
+    errorEl.textContent = `距離は${RUN_DISTANCE_MIN}〜${RUN_DISTANCE_MAX}kmの範囲で入力してください。`;
+    return;
+  }
+
+  const memo = memoInput.value.trim();
+
+  saveButton.disabled = true;
+  cancelButton.disabled = true;
+
+  try {
+    const res = await updateRun(run.runId, {
+      run_date: runDate,
+      memo,
+      distance_km: distanceKm,
+    });
+
+    if (res.status === 401) {
+      errorEl.textContent = "セッションが切れました。再ログインしてください。";
+      return;
+    }
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      errorEl.textContent =
+        body?.error ?? "記録の修正に失敗しました。しばらくしてからもう一度お試しください。";
+      return;
+    }
+
+    // 距離の変更は数値サマリー・可視化シート（T-49）の集計にも影響するため、
+    // 登録成功時（handleRecordSubmit）と同じくpref・summaryの両方を再取得する
+    // （design.md 4.13節）。
+    editingRunId = null;
+    const [prefOk, summaryOk] = await Promise.all([loadAndRenderPref(currentPrefCode), renderSummary()]);
+    if (prefOk && summaryOk) {
+      reattachTriggerAfterSummaryRerender();
+    } else {
+      showSheetError("修正は完了しましたが、画面の更新に失敗しました。再読み込みしてください。");
+    }
+  } catch {
+    errorEl.textContent = "サーバーに接続できませんでした。しばらくしてからもう一度お試しください。";
+  } finally {
+    // renderRunsで要素が作り直された場合、このbuttonsは既にDOMから外れているため
+    // disabled解除は無意味だが、上のエラー分岐（return）でDOMがそのまま残るケースでは必要
+    // （handleAddPhotoの同種コメントと同じ理由）。
+    saveButton.disabled = false;
+    cancelButton.disabled = false;
+  }
+}
+
+// F-26（削除は確認ダイアログを挟む）＋design.md 4.5節の合意：その走行記録が
+// この市で最後の1件の場合は「制覇も取り消される」ことを文言で伝える。
+function confirmDeleteRun(isLastForCity, cityName) {
+  return window.confirm(
+    isLastForCity
+      ? `この記録を削除すると、${cityName}の制覇も取り消されます。削除しますか？`
+      : "この記録を削除しますか？"
+  );
+}
+
+async function handleDeleteRunClick(run, button) {
+  if (button.disabled) {
+    return;
+  }
+
+  // 判定はAPIを増やさず、フロントが既に持っているcurrentPrefData.runsから数える
+  // （design.md 4.13節）。ダイアログは削除前に出す必要があるため、レスポンスの
+  // conquestDeletedではなく削除前のクライアント側カウントで文言を決める。
+  const isLastForCity =
+    (currentPrefData?.runs ?? []).filter(
+      (r) => r.cityCode === run.cityCode && r.isOwnRun !== false
+    ).length <= 1;
+
+  if (!confirmDeleteRun(isLastForCity, run.cityName)) {
+    return;
+  }
+
+  button.disabled = true;
+  try {
+    const res = await deleteRun(run.runId);
+    if (!res.ok) {
+      showSheetError(
+        res.status === 401
+          ? "セッションが切れました。再ログインしてください。"
+          : "記録の削除に失敗しました。しばらくしてからもう一度お試しください。"
+      );
+      button.disabled = false;
+      return;
+    }
+
+    if (editingRunId === run.runId) {
+      editingRunId = null;
+    }
+    showSheetError("");
+    const [prefOk, summaryOk] = await Promise.all([loadAndRenderPref(currentPrefCode), renderSummary()]);
+    if (prefOk && summaryOk) {
+      reattachTriggerAfterSummaryRerender();
+    } else {
+      showSheetError("削除は完了しましたが、画面の更新に失敗しました。再読み込みしてください。");
+    }
+  } catch {
+    showSheetError("サーバーに接続できませんでした。しばらくしてからもう一度お試しください。");
+    button.disabled = false;
+  }
+}
+
 function renderRuns(runs) {
   // 直前の描画でfetchした分のオブジェクトURLだけ解放する。ローカルアップロード分
   // （localPhotoUrls）はシートを閉じるまで温存する（design.md 4.4節）。
@@ -222,6 +467,20 @@ function renderRuns(runs) {
 
   runs.forEach((run) => {
     const li = document.createElement("li");
+
+    // isOwnRunはチームモード限定のフィールド（個人モードには無くundefined）。
+    // undefined !== falseはtrueになるため、個人モードの記録は常にeditable扱いになる
+    // （従来どおり自分の記録として操作できる）。
+    // 🔴 チームモードでは他人の記録に修正・削除ボタンを出さない（v1.6.1で写真削除
+    // ボタンが他人の写真に出ていた不具合と同じ教訓、design.md 4.13節）。
+    const editable = run.isOwnRun !== false;
+
+    if (editable && run.runId === editingRunId) {
+      renderRunEditForm(li, run);
+      runsEl.appendChild(li);
+      return;
+    }
+
     const dateSpan = document.createElement("span");
     dateSpan.className = "d";
     dateSpan.textContent = run.runDate;
@@ -252,10 +511,9 @@ function renderRuns(runs) {
       li.appendChild(memoDiv);
     }
 
-    // isOwnRunはチームモード限定のフィールド（個人モードには無くundefined）。
-    // undefined !== falseはtrueになるため、個人モードの記録は常にeditable扱いになる
-    // （従来どおり自分の記録として操作できる）。
-    const editable = run.isOwnRun !== false;
+    if (editable) {
+      renderRunActions(li, run);
+    }
 
     const photos = run.photos || [];
     if (photos.length > 0) {
@@ -462,6 +720,7 @@ async function loadAndRenderPref(prefCode) {
 
 export async function openPrefSheet(prefCode, triggerEl) {
   lastFocusedEl = triggerEl || document.activeElement;
+  editingRunId = null;
   resetForm();
   titleEl.textContent = "読み込み中…";
   prefBadgeEl.hidden = true;
@@ -490,6 +749,7 @@ export function isPrefSheetOpen() {
 }
 
 export function closePrefSheet() {
+  editingRunId = null;
   sheetEl.classList.remove("open");
   scrimEl.classList.remove("open");
   sheetEl.setAttribute("aria-hidden", "true");

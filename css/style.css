@@ -546,6 +546,99 @@ header {
   content: "・";
 }
 
+/* 走行記録一覧：修正・削除（T-56） */
+
+.run-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.run-edit-btn,
+.run-delete-btn {
+  padding: 4px 9px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.run-delete-btn {
+  color: var(--danger);
+}
+
+/* 一覧内インライン編集フォーム（design.md 4.13節）。#recordFormと同じ見た目にする。 */
+.run-edit-form {
+  margin-top: 6px;
+}
+
+.run-edit-form label {
+  display: block;
+  font-size: 11px;
+  letter-spacing: .1em;
+  color: var(--ink-soft);
+  margin: 10px 0 4px;
+}
+
+.run-edit-form input,
+.run-edit-form textarea {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1.4px solid var(--ink);
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  border-radius: 0;
+}
+
+.run-edit-form textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.run-edit-error {
+  color: var(--danger);
+  font-size: 12px;
+  min-height: 1.4em;
+  margin: 8px 0 0;
+}
+
+.run-edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.run-edit-save {
+  padding: 7px 14px;
+  border: 1.4px solid var(--ink);
+  border-radius: 6px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.run-edit-save:disabled,
+.run-edit-cancel:disabled {
+  opacity: .5;
+  cursor: default;
+}
+
+.run-edit-cancel {
+  padding: 7px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 13px;
+  cursor: pointer;
+}
+
 /* 走行記録一覧：写真（T-21） */
 
 .photos {

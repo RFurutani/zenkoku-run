@@ -104,6 +104,31 @@ export async function createRecord(body) {
   });
 }
 
+// 走行記録の修正（T-56）。bodyは{run_date, memo, distance_km}のスネークケースのまま渡す
+// （createRecordと同じ考え方）。市（city_code）はサーバー側がホワイトリストで拒否するため
+// ここでは送らない（design.md 4.5節・4.13節）。
+export async function updateRun(runId, body) {
+  const idToken = loadIdToken();
+  return fetch(`${API_BASE}/api/runs/${runId}`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+// 走行記録の削除（T-56）。最後の1件を削除すると対応するconquestsも削除される
+// （design.md 4.5節）。
+export async function deleteRun(runId) {
+  const idToken = loadIdToken();
+  return fetch(`${API_BASE}/api/runs/${runId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+}
+
 // 写真の取得（T-21）。<img src>はAuthorizationヘッダーを付けられないため、呼び出し側で
 // レスポンスをBlob化しURL.createObjectURL()に変換してimg.srcへ渡す（design.md 4.4節）。
 export async function fetchPhoto(photoId) {
