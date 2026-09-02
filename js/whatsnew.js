@@ -23,6 +23,14 @@ const WHATS_NEW = {
     ],
     scopeChanged: false,
   },
+  "1.9.0": {
+    title: "v1.9.0 で増えたこと",
+    body: [
+      "登録した記録を、あとから直せるようになりました（日付・メモ・距離。市は変えられません）",
+      "記録を削除できるようになりました",
+    ],
+    scopeChanged: false,
+  },
 };
 
 const panel = document.getElementById("whatsNewPanel");
