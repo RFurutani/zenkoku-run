@@ -31,6 +31,13 @@ const WHATS_NEW = {
     ],
     scopeChanged: false,
   },
+  "1.9.1": {
+    title: "v1.9.1 で変わったこと",
+    body: [
+      "チームを見るときに、ニックネームの設定が必要になりました（設定していない方は、チームタブを押すと設定画面が開きます）",
+    ],
+    scopeChanged: false,
+  },
 };
 
 const panel = document.getElementById("whatsNewPanel");

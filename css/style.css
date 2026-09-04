@@ -501,6 +501,17 @@ header {
   padding-bottom: 4px;
 }
 
+/* チームモードへの誘導経由で設定画面を開いたときだけ表示する案内文（T-55）。 */
+.guidance {
+  background: #EAF1FF;
+  border-left: 3px solid var(--t1);
+  color: var(--ink);
+  font-size: 13px;
+  padding: 10px 12px;
+  margin: 0 0 14px;
+  border-radius: 4px;
+}
+
 .existing {
   margin: 0;
   padding: 0;

@@ -1,6 +1,12 @@
 // 設定画面（T-53）。ニックネームの表示・変更のみを扱う。ログイン中のみ開ける
 // （settingsButtonは#main-screenの内側にあるため、hiddenの制御はauth.jsに任せる）。
 // CLAUDE.mdセキュリティ規約8：サーバー由来の文字列はinnerHTMLで描画せず、textContentのみ使う。
+//
+// T-55：display-mode.jsがチームモードへの入口でニックネーム未設定を検知したとき、
+// openSettings({ guidance, onSaved })の形でこの画面を呼び出す。guidanceは誘導文言、
+// onSavedは保存成功（空文字でない値）時に呼ぶコールバックで、呼び出し元へ「設定できた」
+// ことを伝えチームモードへの復帰を委ねる（この画面自身はチームの状態を知らない）。
+// 設定ボタンからの通常の開き方（引数なし）は今までどおりの挙動のまま変えない。
 
 import { fetchMe, updateNickname } from "./api.js";
 
@@ -8,6 +14,7 @@ const settingsButton = document.getElementById("settingsButton");
 const settingsPanel = document.getElementById("settingsPanel");
 const settingsScrim = document.getElementById("settingsScrim");
 const settingsCloseButton = document.getElementById("settingsCloseButton");
+const nicknameGuidanceEl = document.getElementById("nicknameGuidance");
 const nicknameCurrentEl = document.getElementById("nicknameCurrent");
 const nicknameFormEl = document.getElementById("nicknameForm");
 const fNicknameEl = document.getElementById("fNickname");
@@ -17,6 +24,9 @@ const nicknameSubmitButton = document.getElementById("nicknameSubmitButton");
 
 let lastFocusedEl = null;
 let submitInFlight = false;
+// チーム誘導経由で開かれたときだけ入る。保存成功時にこれを呼んで復帰を委ね、
+// 閉じるとき・通常の開き方のときは必ずnullに戻す。
+let pendingOnSaved = null;
 
 function showNicknameError(message) {
   nicknameErrorEl.textContent = message;
@@ -24,6 +34,16 @@ function showNicknameError(message) {
 
 function showNicknameSuccess(message) {
   nicknameSuccessEl.textContent = message;
+}
+
+function renderGuidance(message) {
+  if (message) {
+    nicknameGuidanceEl.textContent = message;
+    nicknameGuidanceEl.hidden = false;
+  } else {
+    nicknameGuidanceEl.textContent = "";
+    nicknameGuidanceEl.hidden = true;
+  }
 }
 
 // nicknameがnull（未設定）の場合、display_name（本名）へはフォールバックしない
@@ -55,10 +75,13 @@ async function loadCurrentNickname() {
   }
 }
 
-export function openSettings() {
+export function openSettings(options) {
+  const { guidance, onSaved } = options && typeof options === "object" ? options : {};
   lastFocusedEl = document.activeElement;
   showNicknameError("");
   showNicknameSuccess("");
+  renderGuidance(guidance);
+  pendingOnSaved = onSaved || null;
 
   settingsPanel.removeAttribute("aria-hidden");
   settingsPanel.classList.add("open");
@@ -69,6 +92,8 @@ export function openSettings() {
 }
 
 function closeSettings() {
+  pendingOnSaved = null;
+  renderGuidance("");
   settingsPanel.classList.remove("open");
   settingsScrim.classList.remove("open");
   settingsPanel.setAttribute("aria-hidden", "true");
@@ -104,6 +129,16 @@ async function handleNicknameSubmit(event) {
     const data = await res.json();
     renderCurrentNickname(data.nickname);
     fNicknameEl.value = data.nickname || "";
+
+    if (pendingOnSaved && data.nickname) {
+      // チーム誘導経由で、実際にニックネームが設定できた→この画面を閉じて復帰を委ねる。
+      const onSaved = pendingOnSaved;
+      pendingOnSaved = null;
+      closeSettings();
+      onSaved(data.nickname);
+      return;
+    }
+
     showNicknameSuccess("保存しました。");
   } catch {
     showNicknameError("サーバーに接続できませんでした。しばらくしてからもう一度お試しください。");
@@ -113,7 +148,7 @@ async function handleNicknameSubmit(event) {
   }
 }
 
-settingsButton?.addEventListener("click", openSettings);
+settingsButton?.addEventListener("click", () => openSettings());
 settingsCloseButton?.addEventListener("click", closeSettings);
 settingsScrim?.addEventListener("click", closeSettings);
 nicknameFormEl?.addEventListener("submit", handleNicknameSubmit);
