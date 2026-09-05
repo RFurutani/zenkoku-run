@@ -62,7 +62,9 @@ function buildMapCells() {
     cell.style.gridRow = `${row} / span ${rowSpan}`;
     cell.tabIndex = 0;
     cell.setAttribute("role", "button");
-    cell.setAttribute("aria-label", `${prefName}県の詳細を開く`);
+    // 正式名称（プロパティは後段のapplyStages()でAPI応答取得後に上書きする、T-60）。
+    // ここではまだ短縮形しか無いため、誤った「県」を足さず短縮形のまま暫定表示する。
+    cell.setAttribute("aria-label", `${prefName}の詳細を開く`);
 
     const label = document.createElement("span");
     label.textContent = prefName;
@@ -89,6 +91,8 @@ function applyStages(byPrefName) {
     }
     // 県詳細シート（T-16）を開く際にprefCodeが必要なため、ここで持たせておく。
     cell.dataset.prefCode = row.prefCode;
+    // 正式名称が取得できたので、buildMapCells()での暫定ラベルを上書きする（T-60）。
+    cell.setAttribute("aria-label", `${row.prefNameFull}の詳細を開く`);
   });
 }
 

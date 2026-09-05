@@ -737,7 +737,7 @@ async function loadAndRenderPref(prefCode) {
   currentPrefCode = prefCode;
   currentPrefData = data;
 
-  titleEl.textContent = `${data.prefName}県`;
+  titleEl.textContent = data.prefNameFull;
   const rate = data.citiesTotal > 0 ? data.citiesConquered / data.citiesTotal : 0;
   gaugeEl.style.width = `${Math.min(rate * 100, 100)}%`;
 
@@ -872,7 +872,7 @@ function collectNewlyAchievedMessages(prevPrefData, prevBadgeState) {
     currentPrefData &&
     currentPrefData.citiesConquered === currentPrefData.citiesTotal;
   if (prefJustAchieved) {
-    messages.push(`🏅 ${currentPrefData.prefName}県 全${currentPrefData.citiesTotal}市 制覇！`);
+    messages.push(`🏅 ${currentPrefData.prefNameFull} 全${currentPrefData.citiesTotal}市 制覇！`);
   }
 
   const newBadgeState = getCurrentBadgeState();
