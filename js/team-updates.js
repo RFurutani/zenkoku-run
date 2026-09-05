@@ -22,6 +22,8 @@ let openTeamId = null;
 // checkTeamUpdates内で即resolveするため、ここでセットされない）。
 let resolveShown = null;
 
+// 公開メモ（T-59、design.md 4.14節）：代表市の公開メモがあれば1行添える。
+// 複数市に書かれていても代表の1件だけを出す（groupTeamUpdates側で選定済み）。
 function renderUpdateLine(update) {
   const li = document.createElement("li");
   let text = `🏅 ${update.nickname} が ${update.cityName}`;
@@ -29,7 +31,15 @@ function renderUpdateLine(update) {
     text += ` ほか${update.otherCount}市`;
   }
   text += " を制覇しました";
-  li.textContent = text;
+  li.appendChild(document.createTextNode(text));
+
+  if (update.publicMemo) {
+    const memoDiv = document.createElement("div");
+    memoDiv.className = "public-memo";
+    memoDiv.textContent = update.publicMemo;
+    li.appendChild(memoDiv);
+  }
+
   return li;
 }
 

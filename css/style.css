@@ -531,6 +531,14 @@ header {
   margin-right: 6px;
 }
 
+/* 公開メモ（T-59）。自分だけのメモ（.memo、下記）より濃い色にして、
+   「みんなに見せる」ほうが一目で分かるようにする（design.md 4.14節）。 */
+.existing .public-memo {
+  font-size: 13px;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
 .existing .memo {
   font-size: 12px;
   color: var(--ink-soft);
@@ -772,6 +780,13 @@ header {
   min-height: 60px;
 }
 
+/* 公開メモの入力欄（T-59）。青い左罫でチーム共有の色（.guidanceと同じ--t1）と
+   揃え、非公開のメモ欄と見た目で区別する（design.md 4.14節）。 */
+#recordForm .public-memo-input,
+.run-edit-form .public-memo-input {
+  border-left: 4px solid var(--t1);
+}
+
 #recordForm .primary {
   padding: 8px 16px;
   border: 1.4px solid var(--ink);
@@ -920,6 +935,13 @@ header {
 
 .team-updates-list li:last-child {
   border-bottom: none;
+}
+
+/* 公開メモ（T-59、design.md 4.14節）。.existing .public-memoと同じ色にする。 */
+.team-updates-list .public-memo {
+  font-size: 13px;
+  color: var(--ink);
+  margin-top: 3px;
 }
 
 /* 更新のお知らせ（T-57、診断画面と同じ.sheet/.scrimを流用）。 */

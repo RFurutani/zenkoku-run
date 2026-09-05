@@ -32,6 +32,7 @@ const formEl = document.getElementById("recordForm");
 const fCityEl = document.getElementById("fCity");
 const fDateEl = document.getElementById("fDate");
 const fDistanceEl = document.getElementById("fDistance");
+const fPublicMemoEl = document.getElementById("fPublicMemo");
 const fMemoEl = document.getElementById("fMemo");
 const formErrorEl = document.getElementById("formError");
 const formSuccessEl = document.getElementById("formSuccess");
@@ -282,9 +283,18 @@ function renderRunEditForm(li, run) {
   distInput.step = "0.1";
   distInput.value = typeof run.distanceKm === "number" ? run.distanceKm : "";
 
+  const publicMemoLabel = document.createElement("label");
+  publicMemoLabel.htmlFor = `${idPrefix}-public-memo`;
+  publicMemoLabel.textContent = "🌐 みんなに見せるメモ（100文字まで・任意）";
+  const publicMemoInput = document.createElement("textarea");
+  publicMemoInput.id = `${idPrefix}-public-memo`;
+  publicMemoInput.className = "public-memo-input";
+  publicMemoInput.maxLength = 100;
+  publicMemoInput.value = run.publicMemo || "";
+
   const memoLabel = document.createElement("label");
   memoLabel.htmlFor = `${idPrefix}-memo`;
-  memoLabel.textContent = "メモ（任意）";
+  memoLabel.textContent = "🔒 自分だけのメモ（任意）";
   const memoInput = document.createElement("textarea");
   memoInput.id = `${idPrefix}-memo`;
   memoInput.value = run.memo || "";
@@ -308,7 +318,16 @@ function renderRunEditForm(li, run) {
   });
 
   saveButton.addEventListener("click", () =>
-    handleUpdateRunSubmit(run, dateInput, distInput, memoInput, errorEl, saveButton, cancelButton)
+    handleUpdateRunSubmit(
+      run,
+      dateInput,
+      distInput,
+      publicMemoInput,
+      memoInput,
+      errorEl,
+      saveButton,
+      cancelButton
+    )
   );
 
   const btnRow = document.createElement("div");
@@ -320,6 +339,8 @@ function renderRunEditForm(li, run) {
   form.appendChild(dateInput);
   form.appendChild(distLabel);
   form.appendChild(distInput);
+  form.appendChild(publicMemoLabel);
+  form.appendChild(publicMemoInput);
   form.appendChild(memoLabel);
   form.appendChild(memoInput);
   form.appendChild(errorEl);
@@ -330,7 +351,16 @@ function renderRunEditForm(li, run) {
 
 // 保存（PATCH /api/runs/:id）。クライアント側の検証はサーバーと同じ範囲を先に弾くが、
 // 最終判定はサーバー側（validateDistanceKm等）を正とする（design.md 4.13節）。
-async function handleUpdateRunSubmit(run, dateInput, distInput, memoInput, errorEl, saveButton, cancelButton) {
+async function handleUpdateRunSubmit(
+  run,
+  dateInput,
+  distInput,
+  publicMemoInput,
+  memoInput,
+  errorEl,
+  saveButton,
+  cancelButton
+) {
   errorEl.textContent = "";
 
   const runDate = dateInput.value;
@@ -349,6 +379,7 @@ async function handleUpdateRunSubmit(run, dateInput, distInput, memoInput, error
     return;
   }
 
+  const publicMemo = publicMemoInput.value.trim();
   const memo = memoInput.value.trim();
 
   saveButton.disabled = true;
@@ -359,6 +390,7 @@ async function handleUpdateRunSubmit(run, dateInput, distInput, memoInput, error
       run_date: runDate,
       memo,
       distance_km: distanceKm,
+      public_memo: publicMemo,
     });
 
     if (res.status === 401) {
@@ -504,10 +536,17 @@ function renderRuns(runs) {
       whoSpan.textContent = run.isOwnRun ? `★ ${run.registrantName}` : run.registrantName;
       li.appendChild(whoSpan);
     }
+    // 公開メモを先に、自分だけのメモは🔒を前置して後に表示する（T-59、design.md 4.14節）。
+    if (run.publicMemo) {
+      const publicMemoDiv = document.createElement("div");
+      publicMemoDiv.className = "public-memo";
+      publicMemoDiv.textContent = run.publicMemo;
+      li.appendChild(publicMemoDiv);
+    }
     if (run.memo) {
       const memoDiv = document.createElement("div");
       memoDiv.className = "memo";
-      memoDiv.textContent = run.memo;
+      memoDiv.textContent = `🔒 ${run.memo}`;
       li.appendChild(memoDiv);
     }
 
@@ -667,6 +706,7 @@ function resetForm() {
   fDateEl.value = todayStr();
   fDateEl.max = todayStr();
   fDistanceEl.value = "";
+  fPublicMemoEl.value = "";
   fMemoEl.value = "";
   showFormError("");
   showFormSuccess("");
@@ -861,6 +901,7 @@ async function handleRecordSubmit(event) {
   const runDate = fDateEl.value;
   const distanceInput = fDistanceEl.value.trim();
   const distanceKm = distanceInput === "" ? null : Number(distanceInput);
+  const publicMemo = fPublicMemoEl.value.trim();
   const memo = fMemoEl.value.trim();
 
   if (!cityCode) {
@@ -892,6 +933,7 @@ async function handleRecordSubmit(event) {
       run_date: runDate,
       memo,
       distance_km: distanceKm,
+      public_memo: publicMemo,
     });
 
     if (res.status === 401) {
