@@ -11,6 +11,7 @@
 
 <div id="login-screen">
   <h1>全国制覇ラン</h1>
+  <p id="invite-notice">このアプリは招待制です。</p>
   <div id="google-signin-button"></div>
   <p id="login-message" role="alert"></p>
 </div>
@@ -100,8 +101,8 @@
   <span id="app-footer"></span>
   <span class="footer-sep" aria-hidden="true">｜</span>
   <button id="diagnosticsButton" type="button">診断</button>
-  <span class="footer-sep" aria-hidden="true">｜</span>
-  <button id="termsButton" type="button">利用規約</button>
+  <span class="footer-sep" id="termsSep" aria-hidden="true" hidden>｜</span>
+  <button id="termsButton" type="button" hidden>利用規約</button>
 </footer>
 
 <div class="scrim" id="diagnosticsScrim"></div>

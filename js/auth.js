@@ -21,6 +21,8 @@ const mainScreen = document.getElementById("main-screen");
 const loginMessage = document.getElementById("login-message");
 const userEmailEl = document.getElementById("user-email");
 const logoutButton = document.getElementById("logout-button");
+const termsButton = document.getElementById("termsButton");
+const termsSep = document.getElementById("termsSep");
 
 // CLAUDE.mdセキュリティ規約8：利用者入力・サーバー由来の文字列はinnerHTMLで描画しない。
 // ここではtextContentのみを使う。
@@ -28,12 +30,17 @@ function showLogin(message) {
   loginScreen.hidden = false;
   mainScreen.hidden = true;
   loginMessage.textContent = message;
+  // 利用規約はログイン済み（allowed_users通過済み）だけに見せる（v1.10.1、実名記載があるため）。
+  termsButton.hidden = true;
+  termsSep.hidden = true;
 }
 
 function showMain(email) {
   loginScreen.hidden = true;
   mainScreen.hidden = false;
   userEmailEl.textContent = email;
+  termsButton.hidden = false;
+  termsSep.hidden = false;
 }
 
 async function handleCredentialResponse(response) {
