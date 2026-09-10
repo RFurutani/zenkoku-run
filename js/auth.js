@@ -23,6 +23,16 @@ const userEmailEl = document.getElementById("user-email");
 const logoutButton = document.getElementById("logout-button");
 const termsButton = document.getElementById("termsButton");
 const termsSep = document.getElementById("termsSep");
+const adminButton = document.getElementById("adminButton");
+const adminSep = document.getElementById("adminSep");
+
+// 管理ボタン（T-61）の表示切替。ログイン前・非管理者では要素ごと隠す。
+// ★これは利便性のためのUIであり、権限の境界ではない（design.md 4.16節）。
+//   ボタンを無理に表示させても、GET /api/admin/dashboard自体が403で拒否する。
+function setAdminButtonVisible(visible) {
+  adminButton.hidden = !visible;
+  adminSep.hidden = !visible;
+}
 
 // CLAUDE.mdセキュリティ規約8：利用者入力・サーバー由来の文字列はinnerHTMLで描画しない。
 // ここではtextContentのみを使う。
@@ -33,14 +43,17 @@ function showLogin(message) {
   // 利用規約はログイン済み（allowed_users通過済み）だけに見せる（v1.10.1、実名記載があるため）。
   termsButton.hidden = true;
   termsSep.hidden = true;
+  setAdminButtonVisible(false);
 }
 
-function showMain(email) {
+// meDataごと受け取る（emailだけでなくisAdminも見るため。T-61）。
+function showMain(meData) {
   loginScreen.hidden = true;
   mainScreen.hidden = false;
-  userEmailEl.textContent = email;
+  userEmailEl.textContent = meData.email;
   termsButton.hidden = false;
   termsSep.hidden = false;
+  setAdminButtonVisible(meData.isAdmin === true);
 }
 
 async function handleCredentialResponse(response) {
@@ -65,7 +78,7 @@ async function checkLoginState() {
 
     if (res.status === 200) {
       const meData = await res.json();
-      showMain(meData.email);
+      showMain(meData);
       // モードの記憶はしない（画面仕様⑤）ため、ログイン確認のたびに必ず「個人」から
       // 始まる。タブの描画（人数2人未満のチームは出さない、⑧）もここで行う。
       initDisplayMode(meData);

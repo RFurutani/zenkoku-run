@@ -103,6 +103,10 @@
   <button id="diagnosticsButton" type="button">診断</button>
   <span class="footer-sep" id="termsSep" aria-hidden="true" hidden>｜</span>
   <button id="termsButton" type="button" hidden>利用規約</button>
+  <!-- 管理者（users.is_admin = 1）にだけ出す（T-61、design.md 4.16節）。
+       既定はhiddenで、auth.jsのshowMain()がGET /api/meのisAdminを見て外す。 -->
+  <span class="footer-sep" id="adminSep" aria-hidden="true" hidden>｜</span>
+  <button id="adminButton" type="button" hidden>管理</button>
 </footer>
 
 <div class="scrim" id="diagnosticsScrim"></div>

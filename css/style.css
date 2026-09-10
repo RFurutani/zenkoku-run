@@ -889,7 +889,8 @@ header {
 }
 
 #diagnosticsButton,
-#termsButton {
+#termsButton,
+#adminButton {
   padding: 2px;
   border: none;
   background: none;
