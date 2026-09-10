@@ -204,6 +204,32 @@
   </div>
 </div>
 
+<div class="scrim" id="adminScrim"></div>
+<div class="sheet" id="adminPanel" role="dialog" aria-modal="true" aria-labelledby="adminTitle" aria-hidden="true">
+  <h3 id="adminTitle">利用状況</h3>
+  <p class="st">管理者だけが見られる画面です。メールアドレスとメモは含まれません。</p>
+  <p id="adminError" role="alert"></p>
+
+  <div id="adminLoading" class="st" hidden>読み込んでいます…</div>
+
+  <div id="adminDetail" hidden>
+    <div class="secttl">利用者ごとの累計</div>
+    <ul class="admin-users" id="adminUsersList"></ul>
+
+    <div class="secttl">週別の登録数（直近12週）</div>
+    <div class="admin-chart" id="adminWeeklyChart"></div>
+    <p class="st admin-momentum" id="adminMomentum"></p>
+
+    <div class="secttl">曜日別の傾向（全期間）</div>
+    <div class="admin-chart" id="adminWeekdayChart"></div>
+    <p class="st">「いつアプリを開いて登録したか」の集計です（走った日ではありません）。</p>
+  </div>
+
+  <div class="btnrow">
+    <button class="ghost" id="adminCloseButton" type="button">閉じる</button>
+  </div>
+</div>
+
 <script type="module" src="js/auth.js"></script>
 </body>
 </html>

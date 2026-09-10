@@ -1053,3 +1053,106 @@ header {
 .dist-members li:last-child {
   border-bottom: none;
 }
+
+/* 管理者向け利用状況ダッシュボード（T-61、design.md 4.16節）。
+   .dist-chart（T-49）を踏襲した専用クラス。新しい色は増やさず、既存の段階カラー
+   --t4（完全制覇のゴールド）を基調にし、強調が必要な箇所だけ--danger（RED）を使う
+   （開発者指示・2026-09-10）。 */
+.admin-users {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-users li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.admin-users li:last-child {
+  border-bottom: none;
+}
+
+.admin-user-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.admin-user-name {
+  font-weight: 600;
+  /* 長いニックネーム（最大20文字）でも制覇数を押し出さない。 */
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* 制覇数はこの表の主役なので色で立てるが、--t4（#C9A227）をそのまま文字色にすると
+   白地に対するコントラストが約2.4:1しかなく読みにくい。既存の.badge／.cell.t4 spanも
+   「ゴールドは背景、文字は濃い茶」という作りになっているため、同じ濃い茶を使う
+   （新しい色は増やさず、既にstyle.css内にある値を流用する）。 */
+.admin-user-conquest {
+  flex: none;
+  color: #6B4F00;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-user-stats {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 120px;
+  margin: 10px 0 4px;
+}
+
+.admin-chart-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+}
+
+.admin-chart-value {
+  font-size: 9px;
+  color: var(--ink-soft);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-chart-bar {
+  width: 100%;
+  max-width: 22px;
+  background: var(--t4);
+  border-radius: 2px 2px 0 0;
+  min-height: 2px;
+}
+
+.admin-chart-label {
+  font-size: 9px;
+  color: var(--ink-soft);
+  margin-top: 4px;
+  white-space: nowrap;
+}
+
+.admin-momentum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 登録数が前の8週より減っているときだけ色を変える。増加・横ばいは通常色のまま
+   （常に色が付いていると「注意すべき状態」の合図として働かなくなるため）。 */
+.admin-momentum-down {
+  color: var(--danger);
+}

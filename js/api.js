@@ -187,3 +187,13 @@ export async function markTeamUpdatesSeen(teamId) {
     headers: { Authorization: `Bearer ${idToken}` },
   });
 }
+
+// 管理者向け利用状況ダッシュボード（T-61、design.md 4.16節）。管理者以外は403が返る
+// （判定はサーバー側のassertIsAdmin()。フッターの「管理」ボタンの出し分けは
+// 利便性のためのUIであって、権限の境界ではない）。
+export async function fetchAdminDashboard() {
+  const idToken = loadIdToken();
+  return fetch(`${API_BASE}/api/admin/dashboard`, {
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+}
