@@ -17,6 +17,7 @@ const closeButton = document.getElementById("adminCloseButton");
 const errorEl = document.getElementById("adminError");
 const loadingEl = document.getElementById("adminLoading");
 const detailEl = document.getElementById("adminDetail");
+const scopeEl = document.getElementById("adminScope");
 const usersListEl = document.getElementById("adminUsersList");
 const weeklyChartEl = document.getElementById("adminWeeklyChart");
 const momentumEl = document.getElementById("adminMomentum");
@@ -161,7 +162,25 @@ function renderWeekday(weekday) {
   );
 }
 
+// 🔴 対象範囲の注記（T-62、design.md 4.16節）。この画面はチーム所属者だけを
+// 集計しているため、チームに入っていない利用者は表にもグラフにも出てこない。
+// テスト用アカウントを消すのが目的だが、同じ条件は「個人モードだけの実利用者」も
+// 消してしまう。その人が静かに居なくなるのを防ぐため、除外された人数を常に出す。
+// ★対象外が0人でも省略しない（0なのか表示が壊れているのか区別できなくなるため）。
+// ★excludedUserCountが数値でないのは、新しい画面が古いWorkerと組み合わさっている
+//   状態（公開順序は「Worker→画面」のためまず起きないが、古いJSがキャッシュに
+//   残っている等はありうる）。「対象外 undefined人」と出すくらいなら、
+//   取得できていないことをそのまま書く（黙って0人に見せない）。
+function renderScope(data) {
+  const targeted = `対象：チーム所属者 ${data.users.length}人`;
+  scopeEl.textContent =
+    typeof data.excludedUserCount === "number"
+      ? `${targeted}（対象外 ${data.excludedUserCount}人）`
+      : `${targeted}（対象外の人数を取得できませんでした）`;
+}
+
 function render(data) {
+  renderScope(data);
   renderUsers(data.users);
   renderWeekly(data.weekly);
   renderMomentum(data.weekly);

@@ -213,6 +213,12 @@
   <div id="adminLoading" class="st" hidden>読み込んでいます…</div>
 
   <div id="adminDetail" hidden>
+    <!-- 対象範囲の注記（T-62、design.md 4.16節）。チーム未所属の利用者が
+         静かに消えていることに管理者が気づけるようにするための表示なので、
+         対象外が0人のときも省略しない（0なのか表示が壊れているのか分からなくなるため）。
+         中身はadmin.jsがtextContentで入れる（規約8）。 -->
+    <p class="st" id="adminScope"></p>
+
     <div class="secttl">利用者ごとの累計</div>
     <ul class="admin-users" id="adminUsersList"></ul>
 
