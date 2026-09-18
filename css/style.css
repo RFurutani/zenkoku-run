@@ -921,6 +921,8 @@ header {
 }
 
 /* チームの新着通知（T-50、診断画面と同じ.sheet/.scrimを流用）。 */
+/* チームの新着通知（T-63、design.md 4.17節）。制覇1件＝カード1枚を日付順に並べる。
+   カードは4段：①日付＋「登録」 ②🏅誰が・どの市 ③何人目 ④公開メモ。 */
 .team-updates-list {
   margin: 14px 0 0;
   padding: 0;
@@ -929,20 +931,85 @@ header {
   line-height: 1.6;
 }
 
-.team-updates-list li {
+/* 折りたたみで畳んだカード（li）と、二重に出る日付見出し（div）を隠す。
+   displayを指定していないためブラウザ既定でも隠れるが、将来このリストの要素へ
+   displayを足したときに静かに壊れないよう明示しておく。 */
+.team-updates-list [hidden] {
+  display: none;
+}
+
+.team-updates-list .tu-card {
   padding: 8px 0;
   border-bottom: 1px solid var(--rule);
 }
 
-.team-updates-list li:last-child {
+.team-updates-list .tu-card:last-child {
   border-bottom: none;
 }
 
-/* 公開メモ（T-59、design.md 4.14節）。.existing .public-memoと同じ色にする。 */
+/* 1段目：日付（曜日つき）＋「登録」。同じ日のカードが続く間は先頭の1枚にだけ出る。
+   「登録」は、走った日ではなく登録した日であることを伝えるために付けている。 */
+.team-updates-list .tu-date {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin: 8px 0 4px;
+}
+
+.team-updates-list .tu-card:first-child .tu-date {
+  margin-top: 0;
+}
+
+/* 2段目：🏅 誰が・どの市を制覇したか。画面に出す絵文字はこの🏅だけ。 */
+.team-updates-list .tu-title {
+  font-size: 14px;
+}
+
+/* 3段目：チーム内で何人目か。順位を確定できなかった場合はこの段ごと出ない。
+   padding-leftは🏅のぶんの字下げで、2段目の本文と頭を揃えるためのもの。 */
+.team-updates-list .tu-rank {
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-top: 1px;
+  padding-left: 1.6em;
+}
+
+/* 4段目：公開メモ（T-59、design.md 4.14節）。緑の縦線で囲う。
+   色は段階2（--t2）を流用する（requirements.md 5.1節の段階カラー定義）。
+   公開メモが無ければ、この要素自体を作らない（JS側）。 */
 .team-updates-list .public-memo {
   font-size: 13px;
   color: var(--ink);
-  margin-top: 3px;
+  margin: 4px 0 2px 1.6em;
+  padding: 2px 0 2px 8px;
+  border-left: 3px solid var(--t2);
+}
+
+/* 「ほか◯市を見る」（同じ日・同じ人が3枚超）と
+   「これより前の◯件を見る」（総数30枚超）の行。 */
+.team-updates-list .tu-more {
+  padding: 6px 0 8px 1.6em;
+}
+
+.team-updates-list .tu-more button {
+  padding: 5px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink-soft);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* 通知だけはカードが最大30枚並びうるため、閉じるボタンを下端に貼り付ける。
+   他の.sheetは中身が短く、この指定を必要としない。 */
+#teamUpdatesPanel .btnrow {
+  position: sticky;
+  bottom: 0;
+  margin-top: 8px;
+  padding: 10px 0;
+  border-top: 1px solid var(--rule);
+  background: var(--paper);
 }
 
 /* 更新のお知らせ（T-57、診断画面と同じ.sheet/.scrimを流用）。 */
