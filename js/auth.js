@@ -4,6 +4,9 @@ import { renderSummary } from "./summary.js";
 import { initDisplayMode } from "./display-mode.js";
 import { checkTeamUpdates } from "./team-updates.js";
 import { checkWhatsNew } from "./whatsnew.js";
+// 🔴 T-64（アイコン更新のお知らせ）はv1.14.0で削除する一時機能。この行と
+//    下のawait checkIconNotice()の行、public/js/icon-notice.jsを消せば撤去完了。
+import { checkIconNotice } from "./icon-notice.js";
 import { APP_VERSION } from "./version.js";
 import "./diagnostics.js";
 import "./settings.js";
@@ -89,6 +92,9 @@ async function checkLoginState() {
       // どちらもモーダルが閉じられるまでPromiseがresolveしない作りになっている。T-57）。
       await checkTeamUpdates(meData);
       await checkWhatsNew(meData);
+      // 🔴 T-64（一時機能、v1.14.0で削除）。更新のお知らせが出る場合は、それが
+      // 閉じられた後に出す（同時に2枚のシートを重ねない）。
+      await checkIconNotice();
       return;
     }
 
