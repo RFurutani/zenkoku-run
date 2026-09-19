@@ -58,6 +58,15 @@ const WHATS_NEW = {
     ],
     scopeChanged: false,
   },
+  "1.13.0": {
+    title: "v1.13.0 で変わったこと",
+    body: [
+      "アプリのアイコンができました。ブラウザのタブや、ホーム画面に追加したときに足あとのマークが出ます",
+      "アプリの名前を「ASHIATO」に統一しました（「全国制覇ラン」は説明として残しています）",
+      "ホーム画面に追加している方は、一度削除して、もう一度追加すると新しいアイコンになります",
+    ],
+    scopeChanged: false,
+  },
 };
 
 const panel = document.getElementById("whatsNewPanel");
