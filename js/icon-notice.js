@@ -20,6 +20,13 @@
 // （更新のお知らせ＝T-57がDBを使うのとは要件が異なる。design.md 4.12節）。
 const STORAGE_KEY = "ashiato.iconNotice.v1";
 
+// アプリの公開URL（T-64文面修正、v1.13.1）。手順1でホーム画面のショートカットを
+// 消させる以上、ホーム画面からしか入っていない利用者には戻り道が無くなる。そのため
+// 手順の中にURLを文字として示す。
+// 🔴 リンク（<a>）にはしない。押すとページが遷移し、このシート自体が消えてしまうため
+//    （利用者から見ると「案内の続きが読めなくなる」）。
+const APP_URL = "https://rfurutani.github.io/zenkoku-run/";
+
 // 最大2回まで。1日1回まで（同じ日に2回目は出さない）。
 const MAX_SHOWN = 2;
 
@@ -85,7 +92,19 @@ function buildStepList(summaryText, steps) {
   const ol = document.createElement("ol");
   steps.forEach((step) => {
     const li = document.createElement("li");
-    li.textContent = step;
+    if (typeof step === "string") {
+      li.textContent = step;
+    } else {
+      // URLつきの手順は、同じ<li>の中で改行して2行に見せる（<li>を分けると
+      // 手順番号が1つずれるため）。style.cssには何も足さない方針（T-64）のまま
+      // にするため、改行の有効化と長いURLの折り返しは要素のstyleに直接指定する。
+      // word-breakは狭い画面でURLが枠からはみ出すのを防ぐためのもの。日本語の
+      // 行はもともと任意の位置で折り返されるため、この指定による見た目の変化は無い。
+      li.textContent = `${step.text}\n${step.url}`;
+      li.style.whiteSpace = "pre-line";
+      li.style.overflowWrap = "anywhere";
+      li.style.wordBreak = "break-all";
+    }
     ol.appendChild(li);
   });
   details.appendChild(ol);
@@ -122,10 +141,18 @@ function buildPanel() {
   reassurance.textContent = "追加していない方は、そのままで大丈夫です。";
   panel.appendChild(reassurance);
 
+  // 手順より前に置く。手順1でショートカットを消してしまってから読んでも手遅れになる
+  // ため（この一文はその事故を防ぐためのもの）。手順は<details>で畳まれており、
+  // 開かない利用者もいる。
+  const urlNote = document.createElement("p");
+  urlNote.textContent =
+    "※ 先にこのURLをメモするか、ブラウザのお気に入りに入れてから削除してください。";
+  panel.appendChild(urlNote);
+
   panel.appendChild(
     buildStepList("iPhone の方", [
       "ホーム画面の ASHIATO を長押し →「ブックマークを削除」",
-      "Safari で ASHIATO を開く",
+      { text: "Safari で下のURLを開く", url: APP_URL },
       "下の共有ボタン（□に↑）→「ホーム画面に追加」",
     ])
   );
@@ -133,7 +160,7 @@ function buildPanel() {
   panel.appendChild(
     buildStepList("Android の方", [
       "ホーム画面の ASHIATO を長押し →「削除」",
-      "Chrome で ASHIATO を開く",
+      { text: "Chrome で下のURLを開く", url: APP_URL },
       "右上の ⋮ →「ホーム画面に追加」",
     ])
   );
