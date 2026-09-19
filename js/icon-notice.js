@@ -203,6 +203,18 @@ function openPanel() {
 function closePanel() {
   elements.panel.classList.remove("open");
   elements.scrim.classList.remove("open");
+
+  // 🔴 aria-hiddenを付ける前に、シートの中に残っているフォーカスを外に出す。
+  //    順序が逆だと「フォーカスのある要素の祖先がaria-hidden」という矛盾した状態になり、
+  //    Chromeは警告を出したうえでaria-hidden自体を無視する（＝支援技術から隠すという
+  //    本来の目的が達成されない）。下のlastFocusedEl.focus()に任せないのは、戻し先が
+  //    フォーカスできない要素（document.bodyなど）だとfocus()が何もせず、フォーカスが
+  //    シート内に残ったままになるため。
+  //    ここはT-64のシートだけの対処で、既存8枚の書き方は変えていない（2026-09-20）。
+  if (elements.panel.contains(document.activeElement)) {
+    document.activeElement.blur();
+  }
+
   elements.panel.setAttribute("aria-hidden", "true");
   if (lastFocusedEl) {
     lastFocusedEl.focus();
