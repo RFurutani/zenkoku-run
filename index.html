@@ -4,10 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ASHIATO</title>
-<!-- アイコン・PWA manifest（T-29 第1段階）。公開URLは /zenkoku-run/ 配下のため、すべて相対パスで書く -->
+<!-- アイコン・PWA manifest（T-29）。公開URLは /zenkoku-run/ 配下のため、すべて相対パスで書く -->
+<!-- タブ用SVGは塗り版のfavicon.svgを使う。線画のicon.svg／icon-maskable.svgはPNG書き出しの
+     原本で、32pxのタブでは線が潰れるためどこからも参照しない（design.md 4.18節） -->
+<link rel="icon" href="img/favicon.ico" sizes="any">
 <link rel="icon" href="img/favicon-32.png" sizes="32x32">
 <link rel="icon" href="img/favicon-48.png" sizes="48x48">
-<link rel="icon" href="img/icon.svg" type="image/svg+xml">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="img/apple-touch-icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#141414">
@@ -17,7 +20,10 @@
 <body>
 
 <div id="login-screen">
-  <h1>全国制覇ラン</h1>
+  <!-- #main-screenと同じ.eyebrow。h1（名前）と.eyebrow（説明）は排他表示のため、
+       ログイン画面にも説明を置いて両画面で見え方をそろえる（design.md 4.18節） -->
+  <p class="eyebrow">全国制覇ラン / 47 PREFECTURES</p>
+  <h1>ASHIATO</h1>
   <p id="invite-notice">このアプリは招待制です。</p>
   <div id="google-signin-button"></div>
   <p id="login-message" role="alert"></p>
