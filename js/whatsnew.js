@@ -1,7 +1,7 @@
-// 更新のお知らせ（T-57）。新しい版で初めてログインしたときだけ、最新版の
+// 更新のお知らせ（T-57）。新しい版で初めてログインしたときだけ、まだ見ていない版の
 // お知らせを1回だけ自動で開くモーダル（既存の.sheet/.scrim、チーム通知に続く7回目の流用）。
-// 複数バージョンをまたいでログインが空いた場合も、表示するのは最新版1件だけ
-// （design.md 4.12節、開発者確認済み）。
+// 複数バージョンをまたいでログインが空いた場合は、見ていない版を新しい順に最大3件まとめて出す
+// （T-68で「最新版1件だけ」から改定。design.md 4.12節。どの版を出すかはwhatsnew-select.js）。
 // CLAUDE.mdセキュリティ規約8：文言は固定テキストのみを扱うためtextContentで組み立てる。
 //
 // 🔴利用規約（terms.js）とは別物。規約は「変わらない約束事」、こちらは「毎回変わる中身」
@@ -9,6 +9,10 @@
 
 import { APP_VERSION } from "./version.js";
 import { updateLastSeenVersion } from "./api.js";
+import { selectEntries } from "./whatsnew-select.js";
+
+// 一度に出す版の上限（T-68 論点①、RYO承認済み 2026-09-25）。
+const MAX_ENTRIES = 3;
 
 // 版ごとの利用者向け文言。ここに1箇所だけ集約する（version.jsがAPP_VERSIONの
 // 置き場所を1箇所に集約しているのと同じ考え方）。scopeChanged: trueの版だけ、
@@ -110,6 +114,17 @@ function renderLine(text) {
   return li;
 }
 
+// 複数の版をまとめて出すときの、版ごとの小見出し（各版のtitle）。入れ子の<ul>にすると
+// ブラウザ既定の左余白が付きstyle.cssの変更が要るため、平らな<li>の中に<strong>で置く
+// （.steering/2026-09-25-T68-whatsnew-range/design.md 5章）。
+function renderHeading(text) {
+  const li = document.createElement("li");
+  const strong = document.createElement("strong");
+  strong.textContent = text;
+  li.appendChild(strong);
+  return li;
+}
+
 function openPanel() {
   lastFocusedEl = document.activeElement;
   panel.removeAttribute("aria-hidden");
@@ -151,23 +166,28 @@ async function closePanel() {
 // （T-57、auth.jsのcheckLoginState参照）。
 export function checkWhatsNew(meData) {
   return new Promise((resolve) => {
-    if (meData?.lastSeenVersion === APP_VERSION) {
-      resolve();
-      return;
-    }
-
-    const content = WHATS_NEW[APP_VERSION];
-    if (!content) {
-      // この版の文言がwhatsnew.jsに登録されていない（書き忘れ）。お知らせを
+    const entries = selectEntries(meData?.lastSeenVersion, APP_VERSION, WHATS_NEW, MAX_ENTRIES);
+    if (entries.length === 0) {
+      // 見た版が今の版以上、または見ていない範囲に文言が1つも無い。お知らせを
       // 出せないため、既読化もせず黙って進む（次に文言が登録された版で改めて出る）。
       resolve();
       return;
     }
 
-    titleEl.textContent = content.title;
     bodyEl.textContent = "";
-    content.body.forEach((line) => bodyEl.appendChild(renderLine(line)));
-    termsHintEl.textContent = content.scopeChanged
+    if (entries.length === 1) {
+      // 1件のときは従来どおり、その版のtitleを見出しにする（論点④）。
+      titleEl.textContent = entries[0].title;
+      entries[0].body.forEach((line) => bodyEl.appendChild(renderLine(line)));
+    } else {
+      titleEl.textContent = "前回からの更新";
+      entries.forEach((entry) => {
+        bodyEl.appendChild(renderHeading(entry.title));
+        entry.body.forEach((line) => bodyEl.appendChild(renderLine(line)));
+      });
+    }
+    // 表示する版のうち1つでも共有範囲が変わっていれば、一文を1回だけ出す。
+    termsHintEl.textContent = entries.some((entry) => entry.scopeChanged)
       ? "共有範囲が変わりました。利用規約もご確認ください。"
       : "";
 
