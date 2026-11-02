@@ -11,6 +11,8 @@ import {
   deletePhoto,
   updateRun,
   deleteRun,
+  createReply,
+  deleteReply,
 } from "./api.js";
 import { renderSummary, getCurrentBadgeState } from "./summary.js";
 import { compressImage } from "./photo.js";
@@ -481,6 +483,169 @@ async function handleDeleteRunClick(run, button) {
   }
 }
 
+// ===== 公開メモへのひとこと返事（T-70、design.md 4.19節） =====
+// 文言はdesign.md 4.19節「画面の文言」の表のとおり（2026-11-02、開発者決定）。
+// 返事の本文・ニックネームは利用者が入力した文字列のため、textContentのみで組み立てる（規約8）。
+// 見た目は既存のクラスだけで組む（返事の行＝.memo、入力欄＝.run-edit-form、
+// エラー＝.run-edit-error、ボタン＝.run-edit-save／.run-delete-btn）。style.cssは変えない。
+
+// worker/src/router.jsのREPLY_BODY_MAX_LENGTHと一致させること。
+const REPLY_MAX_LENGTH = 100;
+
+// 返事の一覧と、返事できる記録なら入力欄を出す。canReply（Workerが判定）が偽のとき
+// （他人の記録でない・自分が既に返事した等）は入力欄を出さない。自分の返事には削除ボタンを付ける。
+function renderReplies(li, run) {
+  (run.replies ?? []).forEach((reply) => {
+    const replyDiv = document.createElement("div");
+    replyDiv.className = "memo";
+    replyDiv.textContent = `${reply.nickname}：${reply.body}`;
+    li.appendChild(replyDiv);
+
+    if (reply.isOwnReply) {
+      const actions = document.createElement("div");
+      actions.className = "run-actions";
+      const deleteButton = document.createElement("button");
+      deleteButton.type = "button";
+      deleteButton.className = "run-delete-btn";
+      deleteButton.textContent = "🗑 削除";
+      deleteButton.addEventListener("click", () => handleDeleteReplyClick(reply.replyId, deleteButton));
+      actions.appendChild(deleteButton);
+      li.appendChild(actions);
+    }
+  });
+
+  if (run.canReply) {
+    renderReplyForm(li, run);
+  }
+}
+
+function renderReplyForm(li, run) {
+  const idPrefix = `reply-${run.runId}`;
+  const form = document.createElement("div");
+  form.className = "run-edit-form";
+
+  const label = document.createElement("label");
+  label.htmlFor = `${idPrefix}-body`;
+  label.textContent = `💬 ひとこと返事（${REPLY_MAX_LENGTH}文字まで・1回だけ）`;
+
+  const input = document.createElement("textarea");
+  input.id = `${idPrefix}-body`;
+  input.maxLength = REPLY_MAX_LENGTH;
+  input.placeholder = "おつかれさま！など";
+
+  const errorEl = document.createElement("p");
+  errorEl.className = "run-edit-error";
+  errorEl.setAttribute("role", "alert");
+
+  const sendButton = document.createElement("button");
+  sendButton.type = "button";
+  sendButton.className = "run-edit-save";
+  sendButton.textContent = "返事する";
+  sendButton.addEventListener("click", () => handleReplySubmit(run, input, errorEl, sendButton));
+
+  const btnRow = document.createElement("div");
+  btnRow.className = "run-edit-actions";
+  btnRow.appendChild(sendButton);
+
+  form.appendChild(label);
+  form.appendChild(input);
+  form.appendChild(errorEl);
+  form.appendChild(btnRow);
+  li.appendChild(form);
+}
+
+// サーバーのエラーコードを、決めた文言に置き換える。文言を画面側に持つのは、
+// 利用者向けの言い回し（「どうすれば直るか」）をここで1か所に保つため。
+function replyErrorMessage(status, code) {
+  if (status === 401) {
+    return "セッションが切れました。再ログインしてください。";
+  }
+  if (code === "ALREADY_REPLIED") {
+    return "この記録にはもう返事しています。書き直すときは、前の返事を削除してください。";
+  }
+  if (code === "REPLY_EMPTY") {
+    return "返事を入力してください。";
+  }
+  if (code === "REPLY_TOO_LONG") {
+    return `返事は${REPLY_MAX_LENGTH}文字以内で入力してください。`;
+  }
+  if (code === "RUN_NOT_FOUND" || code === "PUBLIC_MEMO_EMPTY") {
+    return "この記録には返事できなくなりました。画面を読み込み直してください。";
+  }
+  return "サーバーに接続できませんでした。しばらくしてからもう一度お試しください。";
+}
+
+async function handleReplySubmit(run, input, errorEl, button) {
+  if (button.disabled) {
+    return;
+  }
+  errorEl.textContent = "";
+
+  // サーバーと同じ範囲を先に弾く（最終判定はサーバー側のvalidateReplyBody()）。
+  // 前後の空白は取り除かずに送る（サーバーも取り除かない。書いたとおりに残す）。
+  const body = input.value;
+  if (body.trim() === "") {
+    errorEl.textContent = replyErrorMessage(400, "REPLY_EMPTY");
+    return;
+  }
+  if ([...body].length > REPLY_MAX_LENGTH) {
+    errorEl.textContent = replyErrorMessage(400, "REPLY_TOO_LONG");
+    return;
+  }
+
+  button.disabled = true;
+  try {
+    const res = await createReply(run.runId, body);
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      errorEl.textContent = replyErrorMessage(res.status, data?.code);
+      return;
+    }
+    showSheetError("");
+    const ok = await loadAndRenderPref(currentPrefCode);
+    if (!ok) {
+      showSheetError("返事は送りましたが、画面の更新に失敗しました。再読み込みしてください。");
+    }
+  } catch {
+    errorEl.textContent = replyErrorMessage(0, null);
+  } finally {
+    // loadAndRenderPrefで要素が作り直された場合は無意味だが、エラーでDOMが残るケースでは必要
+    // （handleUpdateRunSubmitと同じ理由）。
+    button.disabled = false;
+  }
+}
+
+async function handleDeleteReplyClick(replyId, button) {
+  if (button.disabled) {
+    return;
+  }
+  if (!window.confirm("この返事を削除しますか？削除したあと、もう一度書けます。")) {
+    return;
+  }
+
+  button.disabled = true;
+  try {
+    const res = await deleteReply(replyId);
+    if (!res.ok) {
+      showSheetError(
+        res.status === 401
+          ? "セッションが切れました。再ログインしてください。"
+          : "返事の削除に失敗しました。しばらくしてからもう一度お試しください。"
+      );
+      button.disabled = false;
+      return;
+    }
+    showSheetError("");
+    const ok = await loadAndRenderPref(currentPrefCode);
+    if (!ok) {
+      showSheetError("削除は完了しましたが、画面の更新に失敗しました。再読み込みしてください。");
+    }
+  } catch {
+    showSheetError("サーバーに接続できませんでした。しばらくしてからもう一度お試しください。");
+    button.disabled = false;
+  }
+}
+
 function renderRuns(runs) {
   // 直前の描画でfetchした分のオブジェクトURLだけ解放する。ローカルアップロード分
   // （localPhotoUrls）はシートを閉じるまで温存する（design.md 4.4節）。
@@ -542,6 +707,8 @@ function renderRuns(runs) {
       publicMemoDiv.className = "public-memo";
       publicMemoDiv.textContent = run.publicMemo;
       li.appendChild(publicMemoDiv);
+      // ひとこと返事（T-70）は公開メモの直下に置く。公開メモが無い記録には出さない。
+      renderReplies(li, run);
     }
     if (run.memo) {
       const memoDiv = document.createElement("div");

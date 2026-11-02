@@ -129,6 +129,29 @@ export async function deleteRun(runId) {
   });
 }
 
+// 公開メモへのひとこと返事の登録（T-70、design.md 4.19節）。bodyは返事の本文（文字列）。
+// 返事してよい記録か（他人の記録・同じチーム・公開メモあり）はWorker側が判定する。
+export async function createReply(runId, body) {
+  const idToken = loadIdToken();
+  return fetch(`${API_BASE}/api/runs/${runId}/replies`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ body }),
+  });
+}
+
+// 自分のひとこと返事の削除（T-70）。消したあと、同じ記録にもう一度書ける。
+export async function deleteReply(replyId) {
+  const idToken = loadIdToken();
+  return fetch(`${API_BASE}/api/replies/${replyId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+}
+
 // 写真の取得（T-21）。<img src>はAuthorizationヘッダーを付けられないため、呼び出し側で
 // レスポンスをBlob化しURL.createObjectURL()に変換してimg.srcへ渡す（design.md 4.4節）。
 export async function fetchPhoto(photoId) {

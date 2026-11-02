@@ -8,7 +8,11 @@
 // ③「初めての制覇」or「◯◯に続いて◯人目」／④公開メモ（あれば緑の縦線つき）。
 // 画面に出す絵文字は🏅だけ。
 //
-// CLAUDE.mdセキュリティ規約8：nickname・市名・公開メモはいずれも利用者が入力した
+// 2026-11-02（T-70）：自分の公開メモに届いたひとこと返事を、同じ並びに「返事カード」として
+// 混ぜる（renderReplyCardBody）。Workerはrepliesを別の配列で返し、画面側でmergeUpdates()が
+// 登録日時の古い順に混ぜる。
+//
+// CLAUDE.mdセキュリティ規約8：nickname・市名・公開メモ・返事の本文はいずれも利用者が入力した
 // 文字列またはサーバーから受け取った文字列であり、textContent／createElementのみで
 // 組み立てる。このファイルにinnerHTMLは1箇所も無い。
 
@@ -53,7 +57,8 @@ let resolveShown = null;
 //
 // 末尾の「登録」は、走った日ではなく登録した日であることを伝えるために付ける。
 // 過去の記録をまとめて入力すると日付が「入力した日」になるため（実際に起きている）。
-function formatDateLabel(isoDate) {
+// ひとこと返事のカード（T-70）では「登録」を付けない（withSuffix=false。2026-11-02、開発者決定）。
+function formatDateLabel(isoDate, withSuffix = true) {
   const parts = String(isoDate ?? "").split("-");
   const year = Number(parts[0]);
   const month = Number(parts[1]);
@@ -70,7 +75,42 @@ function formatDateLabel(isoDate) {
   }
 
   const weekday = WEEKDAY_LABELS[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
-  return `${month}/${day}（${weekday}）登録`;
+  return `${month}/${day}（${weekday}）${withSuffix ? "登録" : ""}`;
+}
+
+// カード1段目に出す見出しの文字列。制覇カードは「登録」付き、返事カードは無し。
+// 見出しを出すかどうか（同じ見出しが続く間は先頭の1枚だけ）も、日付ではなくこの文字列で
+// 判定する。同じ日に制覇と返事が混ざったとき、「登録」付きの見出しの下に返事が
+// 並ぶ（またはその逆）ことを防ぐため。
+function dateLabelOf(card) {
+  return formatDateLabel(card.date, card.kind !== "reply");
+}
+
+// 制覇（updates）とひとこと返事（replies、T-70）を1つの並びにする。どちらも
+// registeredAt（UTCの"YYYY-MM-DD HH:MM:SS"）の古い順。🔴 new Date()に渡さず文字列のまま
+// 比べる（同じ形の文字列は辞書順がそのまま時刻順になる。formatDateLabelと同じ理由で、
+// 文字列パースのブラウザ差を避ける）。同じ時刻なら制覇を先にする。
+// repliesが無い（古いWorker）ときは空とみなし、今までどおり制覇カードだけを出す。
+function mergeUpdates(updates, replies) {
+  const cards = [
+    ...updates.map((u) => ({ ...u, kind: "conquest" })),
+    ...replies.map((r) => ({ ...r, kind: "reply" })),
+  ];
+  const kindOrder = (card) => (card.kind === "conquest" ? 0 : 1);
+  return cards
+    .map((card, index) => ({ card, index }))
+    .sort((a, b) => {
+      const ta = String(a.card.registeredAt ?? "");
+      const tb = String(b.card.registeredAt ?? "");
+      if (ta !== tb) {
+        return ta < tb ? -1 : 1;
+      }
+      if (kindOrder(a.card) !== kindOrder(b.card)) {
+        return kindOrder(a.card) - kindOrder(b.card);
+      }
+      return a.index - b.index;
+    })
+    .map(({ card }) => card);
 }
 
 // カード3段目の文言。memberRankがnullのときはnullを返し、段ごと出さない
@@ -100,8 +140,13 @@ function renderCard(update, showDate) {
   if (showDate) {
     const dateEl = document.createElement("div");
     dateEl.className = "tu-date";
-    dateEl.textContent = formatDateLabel(update.date);
+    dateEl.textContent = dateLabelOf(update);
     li.appendChild(dateEl);
+  }
+
+  if (update.kind === "reply") {
+    renderReplyCardBody(li, update);
+    return li;
   }
 
   const titleEl = document.createElement("div");
@@ -126,6 +171,32 @@ function renderCard(update, showDate) {
   }
 
   return li;
+}
+
+// ひとこと返事のカード（T-70、design.md 4.17節の追記）。自分の公開メモに届いた返事を知らせる。
+//   1段目：日付（「登録」なし。renderCard側で付ける）
+//   2段目：「◯◯ から返事がありました（◯◯市）」
+//   3段目：元の公開メモ（制覇カードと同じ緑の縦線）
+//   4段目：返事の本文（制覇カードの3段目と同じ字下げ・文字の大きさ。既存の.tu-rankを使い、
+//          style.cssは変えない）
+// 絵文字は付けない（通知に出す絵文字は🏅だけ、design.md 4.17節）。
+function renderReplyCardBody(li, update) {
+  const titleEl = document.createElement("div");
+  titleEl.className = "tu-title";
+  titleEl.textContent = `${update.nickname} から返事がありました（${update.cityName}）`;
+  li.appendChild(titleEl);
+
+  if (update.publicMemo) {
+    const memoEl = document.createElement("div");
+    memoEl.className = "public-memo";
+    memoEl.textContent = update.publicMemo;
+    li.appendChild(memoEl);
+  }
+
+  const bodyEl = document.createElement("div");
+  bodyEl.className = "tu-rank";
+  bodyEl.textContent = update.body;
+  li.appendChild(bodyEl);
 }
 
 // 「ほか◯市を見る」「これより前の◯件を見る」の行。押すと対象を表示して自分は消える。
@@ -172,8 +243,10 @@ function renderSegment(cards) {
 
     const group = [];
     for (let i = index; i < end; i += 1) {
-      const showDate = cards[i].date !== previousDate;
-      previousDate = cards[i].date;
+      // 見出しの要否は日付ではなく見出しの文字列で判定する（dateLabelOfのコメント参照）。
+      const label = dateLabelOf(cards[i]);
+      const showDate = label !== previousDate;
+      previousDate = label;
 
       const li = renderCard(cards[i], showDate);
       if (showDate && !firstDateEl) {
@@ -229,7 +302,7 @@ function renderUpdates(updates) {
       // 畳んだ境界が同じ日をまたいでいると、古い側の末尾と残り側の先頭で
       // 日付見出しが2回出る。展開した時点で下側の見出しを消す。
       const boundaryIsSameDay =
-        olderCards[olderCards.length - 1].date === recentCards[0].date;
+        dateLabelOf(olderCards[olderCards.length - 1]) === dateLabelOf(recentCards[0]);
       if (boundaryIsSameDay && recentFirstDateEl) {
         recentFirstDateEl.hidden = true;
       }
@@ -348,14 +421,15 @@ async function runCheck(meData, resolve) {
     return;
   }
 
-  const updates = data.updates ?? [];
-  if (updates.length === 0) {
+  // 制覇とひとこと返事（T-70）を1つの並びにする。どちらも0件なら開かない。
+  const cards = mergeUpdates(data.updates ?? [], data.replies ?? []);
+  if (cards.length === 0) {
     resolve();
     return;
   }
 
   errorEl.textContent = "";
-  renderUpdates(updates);
+  renderUpdates(cards);
   openTeamId = teamId;
   resolveShown = resolve;
   openPanel();
