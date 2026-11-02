@@ -486,8 +486,9 @@ async function handleDeleteRunClick(run, button) {
 // ===== 公開メモへのひとこと返事（T-70、design.md 4.19節） =====
 // 文言はdesign.md 4.19節「画面の文言」の表のとおり（2026-11-02、開発者決定）。
 // 返事の本文・ニックネームは利用者が入力した文字列のため、textContentのみで組み立てる（規約8）。
-// 見た目は既存のクラスだけで組む（返事の行＝.memo、入力欄＝.run-edit-form、
-// エラー＝.run-edit-error、ボタン＝.run-edit-save／.run-delete-btn）。style.cssは変えない。
+// 見た目：返事の行＝.memo-reply（T-70で追加。自分だけのメモ.memoと見分けるため）、
+// 入力欄＝.run-edit-form、エラー＝.run-edit-error、ボタン＝既存の.run-edit-btn／.run-edit-save／
+// .run-edit-cancel／.run-delete-btn。
 
 // worker/src/router.jsのREPLY_BODY_MAX_LENGTHと一致させること。
 const REPLY_MAX_LENGTH = 100;
@@ -497,7 +498,7 @@ const REPLY_MAX_LENGTH = 100;
 function renderReplies(li, run) {
   (run.replies ?? []).forEach((reply) => {
     const replyDiv = document.createElement("div");
-    replyDiv.className = "memo";
+    replyDiv.className = "memo-reply";
     replyDiv.textContent = `${reply.nickname}：${reply.body}`;
     li.appendChild(replyDiv);
 
@@ -519,10 +520,28 @@ function renderReplies(li, run) {
   }
 }
 
+// 返事の入力欄は、最初は閉じておき「💬 ひとこと返事する」ボタンだけを出す
+// （記録が多い県で、開いた入力欄が並んで場所を取らないように。2026-11-02、開発者指示）。
+// 押すと入力欄が開き、「キャンセル」で閉じる（書きかけの文字は消す）。
+// 開閉はhidden属性で行う。.run-actionsはdisplay:flexを持つため、hiddenはその中の
+// ボタン自体に付ける（flexの要素にhiddenを付けても、CSSのdisplayに上書きされて隠れない）。
 function renderReplyForm(li, run) {
   const idPrefix = `reply-${run.runId}`;
+
+  const toggleRow = document.createElement("div");
+  toggleRow.className = "run-actions";
+  const openButton = document.createElement("button");
+  openButton.type = "button";
+  openButton.className = "run-edit-btn";
+  openButton.textContent = "💬 ひとこと返事する";
+  openButton.setAttribute("aria-expanded", "false");
+  openButton.setAttribute("aria-controls", `${idPrefix}-form`);
+  toggleRow.appendChild(openButton);
+
   const form = document.createElement("div");
   form.className = "run-edit-form";
+  form.id = `${idPrefix}-form`;
+  form.hidden = true;
 
   const label = document.createElement("label");
   label.htmlFor = `${idPrefix}-body`;
@@ -543,14 +562,36 @@ function renderReplyForm(li, run) {
   sendButton.textContent = "返事する";
   sendButton.addEventListener("click", () => handleReplySubmit(run, input, errorEl, sendButton));
 
+  const cancelButton = document.createElement("button");
+  cancelButton.type = "button";
+  cancelButton.className = "run-edit-cancel";
+  cancelButton.textContent = "キャンセル";
+
+  openButton.addEventListener("click", () => {
+    form.hidden = false;
+    openButton.hidden = true;
+    openButton.setAttribute("aria-expanded", "true");
+    input.focus();
+  });
+  cancelButton.addEventListener("click", () => {
+    input.value = "";
+    errorEl.textContent = "";
+    form.hidden = true;
+    openButton.hidden = false;
+    openButton.setAttribute("aria-expanded", "false");
+    openButton.focus();
+  });
+
   const btnRow = document.createElement("div");
   btnRow.className = "run-edit-actions";
   btnRow.appendChild(sendButton);
+  btnRow.appendChild(cancelButton);
 
   form.appendChild(label);
   form.appendChild(input);
   form.appendChild(errorEl);
   form.appendChild(btnRow);
+  li.appendChild(toggleRow);
   li.appendChild(form);
 }
 
